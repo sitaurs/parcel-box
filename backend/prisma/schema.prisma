@@ -1,0 +1,85 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Device {
+  id         String    @id @default(cuid())
+  name       String
+  lastSeen   DateTime? @map("last_seen")
+  status     String    @default("offline") // online, offline, error
+  fwVersion  String?   @map("fw_version")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  
+  packages   Package[]
+  events     Event[]
+  
+  @@map("devices")
+}
+
+model Package {
+  id          String    @id @default(cuid())
+  deviceId    String    @map("device_id")
+  tsDetected  DateTime  @map("ts_detected")
+  tsPhoto     DateTime? @map("ts_photo")
+  tsRelease   DateTime? @map("ts_release")
+  tsDrop      DateTime? @map("ts_drop")
+  photoUrl    String?   @map("photo_url")
+  thumbUrl    String?   @map("thumb_url")
+  distanceCm  Int?      @map("distance_cm")
+  note        String?
+  status      String    @default("detected") // detected, captured, released, dropped, jammed
+  
+  device      Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  
+  @@index([deviceId])
+  @@index([tsDetected])
+  @@map("packages")
+}
+
+model Event {
+  id         String   @id @default(cuid())
+  deviceId   String   @map("device_id")
+  type       String   // DETECTED, CAPTURE, RELEASE, DROP_OK, JAM, ONLINE, OFFLINE, ERROR
+  ts         DateTime
+  details    String?  @default("{}") // JSON string
+  
+  device     Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  
+  @@index([deviceId])
+  @@index([type])
+  @@index([ts])
+  @@map("events")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  passHash  String   @map("pass_hash")
+  role      String   @default("user") // admin, user
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  pushSubscriptions PushSubscription[]
+  
+  @@map("users")
+}
+
+model PushSubscription {
+  id       String @id @default(cuid())
+  userId   String @map("user_id")
+  endpoint String @unique
+  p256dh   String
+  auth     String
+  
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@map("push_subscriptions")
+}

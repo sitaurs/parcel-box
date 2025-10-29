@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.log
+db.sqlite
+db.sqlite-journal
+storage/
+wa-session/
+*.tsbuildinfo
+.DS_Store

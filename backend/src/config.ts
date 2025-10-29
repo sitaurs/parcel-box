@@ -1,0 +1,48 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export const config = {
+  port: parseInt(process.env.PORT || '8080', 10),
+  nodeEnv: process.env.NODE_ENV || 'development',
+  
+  jwt: {
+    secret: process.env.JWT_SECRET || 'dev_jwt_secret_change_in_production',
+    expiresIn: '7d',
+  },
+  
+  apiToken: process.env.API_TOKEN || 'device_token_change_this',
+  
+  cors: {
+    origin: process.env.CORS_ORIGIN || '*',
+  },
+  
+  database: {
+    url: process.env.DATABASE_URL || 'file:./db.sqlite',
+  },
+  
+  storage: {
+    dir: process.env.STORAGE_DIR || './storage',
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/jpg'],
+  },
+  
+  baileys: {
+    dataDir: process.env.BAILEYS_DATA_DIR || './wa-session',
+    defaultPhone: process.env.DEFAULT_PHONE || '',
+  },
+  
+  vapid: {
+    publicKey: process.env.VAPID_PUBLIC_KEY || '',
+    privateKey: process.env.VAPID_PRIVATE_KEY || '',
+    subject: process.env.VAPID_EMAIL || 'mailto:admin@example.com',
+  },
+  
+  mqtt: {
+    enabled: process.env.MQTT_ENABLED !== 'false', // Default enabled
+    host: process.env.MQTT_HOST || '13.213.57.228',
+    port: parseInt(process.env.MQTT_PORT || '1883', 10),
+    username: process.env.MQTT_USER || 'smartbox',
+    password: process.env.MQTT_PASS || 'engganngodinginginmcu',
+  },
+};

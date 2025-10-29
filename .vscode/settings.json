@@ -1,0 +1,18 @@
+{
+  // Ignore Tailwind CSS directives warnings
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  
+  // Tailwind CSS IntelliSense
+  "tailwindCSS.experimental.classRegex": [
+    ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+  ],
+  
+  // Recommended extensions
+  "extensions.ignoreRecommendations": false,
+  "extensions.recommendations": [
+    "bradlc.vscode-tailwindcss"
+  ]
+}

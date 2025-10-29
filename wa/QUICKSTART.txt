@@ -1,0 +1,236 @@
+==========================================================
+WHATSAPP BACKEND - QUICKSTART GUIDE
+==========================================================
+
+## ⚡ SETUP (5 MENIT)
+
+1. Install Dependencies:
+   -------------------------
+   cd backend-whatsapp
+   npm install
+
+2. Setup Environment:
+   -------------------------
+   # Copy .env.example
+   cp .env.example .env
+   
+   # Edit .env (optional):
+   PORT=3001
+   DEFAULT_PHONE=628123456789
+
+3. Start Service:
+   -------------------------
+   npm run dev
+
+4. See Output:
+   -------------------------
+   ╔════════════════════════════════════════════╗
+   ║   WhatsApp Backend Service - Standalone   ║
+   ╚════════════════════════════════════════════╝
+   🚀 Server: http://localhost:3001
+   📡 Socket.IO: ws://localhost:3001/socket.io
+
+==========================================================
+
+## 🎯 QUICK TEST (Terminal/Postman)
+
+1. Start WhatsApp:
+   -------------------------
+   curl -X POST http://localhost:3001/api/wa/start
+
+   Response:
+   {
+     "message": "WhatsApp service started",
+     "status": { "connected": false, "qrCode": "..." }
+   }
+
+2. Get QR Code:
+   -------------------------
+   Open: http://localhost:3001/api/wa/status
+   
+   Copy QR code (base64) or use Socket.IO listener
+
+3. Scan QR with Phone:
+   -------------------------
+   - Open WhatsApp
+   - Settings → Linked Devices
+   - Link a Device
+   - Scan QR code
+
+4. Check Status:
+   -------------------------
+   curl http://localhost:3001/api/wa/status
+
+   Response:
+   {
+     "connected": true,
+     "me": "628123456789@s.whatsapp.net",
+     "qrCode": null
+   }
+
+5. Send Test Message:
+   -------------------------
+   curl -X POST http://localhost:3001/api/wa/send \
+     -H "Content-Type: application/json" \
+     -d '{
+       "to": "628123456789",
+       "text": "Test from WhatsApp backend!"
+     }'
+
+6. Stop (Preserve Session):
+   -------------------------
+   curl -X POST http://localhost:3001/api/wa/stop
+
+7. Clear Session (Logout):
+   -------------------------
+   curl -X POST http://localhost:3001/api/wa/clear-session
+
+==========================================================
+
+## 🔗 INTEGRATION WITH MAIN BACKEND
+
+File: backend/src/services/whatsapp-client.ts (NEW)
+
+----------------------------------------------------------
+import fetch from 'node-fetch';
+
+const WA_BACKEND = 'http://localhost:3001';
+
+export async function sendWhatsApp(to: string, text: string) {
+  try {
+    const response = await fetch(`${WA_BACKEND}/api/wa/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, text }),
+    });
+    
+    if (!response.ok) throw new Error('Send failed');
+    console.log('✅ WhatsApp sent');
+  } catch (error) {
+    console.error('❌ WhatsApp error:', error);
+  }
+}
+
+export async function sendWhatsAppImage(
+  to: string, 
+  imageBuffer: Buffer, 
+  caption?: string
+) {
+  const base64Image = imageBuffer.toString('base64');
+  
+  const response = await fetch(`${WA_BACKEND}/api/wa/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      to, 
+      image: base64Image, 
+      caption 
+    }),
+  });
+  
+  if (!response.ok) throw new Error('Send failed');
+  console.log('✅ WhatsApp image sent');
+}
+----------------------------------------------------------
+
+Usage in main backend:
+
+----------------------------------------------------------
+// backend/src/routes/packages.ts
+
+import { sendWhatsAppImage } from '../services/whatsapp-client';
+
+// After package created:
+const photoBuffer = await fs.readFile(req.file.path);
+await sendWhatsAppImage(
+  '628123456789',
+  photoBuffer,
+  `📦 Package ${pkg.id} detected!`
+);
+----------------------------------------------------------
+
+==========================================================
+
+## 📊 PROCESS MANAGEMENT
+
+Run 2 Backends Simultaneously:
+
+Terminal 1 (Main Backend):
+---------------------------
+cd backend
+npm run dev
+# Runs on :8080
+
+Terminal 2 (WhatsApp Backend):
+---------------------------
+cd backend-whatsapp
+npm run dev
+# Runs on :3001
+
+Or use PM2:
+---------------------------
+pm2 start backend/src/index.ts --name main-backend
+pm2 start backend-whatsapp/src/index.ts --name wa-backend
+pm2 logs
+
+==========================================================
+
+## 🐛 COMMON ISSUES
+
+Issue 1: Port 3001 already in use
+----------------------------------
+Solution:
+- Change PORT in .env
+- Or kill existing process:
+  netstat -ano | findstr :3001
+  taskkill /PID <PID> /F
+
+Issue 2: Error 405 (Connection Blocked)
+----------------------------------
+Solution:
+1. curl -X POST http://localhost:3001/api/wa/clear-session
+2. curl -X POST http://localhost:3001/api/wa/start
+3. Scan QR baru
+
+Issue 3: QR Code tidak muncul
+----------------------------------
+Check:
+1. Service running? curl http://localhost:3001/health
+2. Socket.IO connected? (use browser console)
+3. Check logs: Look for "📱 QR code generated"
+
+Issue 4: Session expired
+----------------------------------
+1. Clear session
+2. Start service
+3. Scan QR baru
+
+==========================================================
+
+## ✅ VERIFICATION CHECKLIST
+
+Before going to production:
+
+- [ ] npm install completed without errors
+- [ ] .env configured with correct values
+- [ ] Service starts successfully (port 3001)
+- [ ] QR code appears when calling /api/wa/start
+- [ ] Can scan QR and connect
+- [ ] Status shows connected: true
+- [ ] Can send test message
+- [ ] Stop preserves session (no QR after restart)
+- [ ] Clear session removes auth files
+- [ ] Main backend can call WhatsApp backend API
+
+==========================================================
+
+## 🎯 NEXT STEPS
+
+1. ✅ Setup complete? → Test integration dengan main backend
+2. ✅ Integration works? → Update PWA untuk pakai backend baru
+3. ✅ PWA updated? → Test end-to-end flow
+4. ✅ All tests pass? → Deploy to production
+
+==========================================================
+STANDALONE WHATSAPP BACKEND - READY TO GO! 🚀📱
+==========================================================

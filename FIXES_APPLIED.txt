@@ -1,0 +1,201 @@
+=================================================
+SYSTEM AUDIT & FIXES APPLIED
+Date: October 24, 2025
+=================================================
+
+## CRITICAL FIXES APPLIED
+
+### 1. Backend Configuration Consistency ✅
+
+**File: backend/src/config.ts**
+
+BEFORE:
+- baileys.dataDir: './baileys_sessions' (mismatch with .env.example)
+- Missing: baileys.defaultPhone
+- vapid.subject: uses VAPID_SUBJECT (mismatch with .env.example)
+
+AFTER:
+- baileys.dataDir: './wa-session' (matches .env.example ✓)
+- Added: baileys.defaultPhone from DEFAULT_PHONE env var ✓
+- vapid.subject: uses VAPID_EMAIL (matches .env.example ✓)
+
+### 2. WhatsApp Service Fixes ✅
+
+**File: backend/src/services/baileys.ts**
+
+Changes:
+- Version changed: [2, 2409, 2] (more stable)
+- Browser identifier: ['Ubuntu', 'Chrome', '20.0.04'] (avoid 405)
+- Added defaultQueryTimeoutMs: 60000
+- Error messages now use dynamic folder name: `${path.basename(this.sessionDir)}`
+
+### 3. Packages Route Fix ✅
+
+**File: backend/src/routes/packages.ts**
+
+BEFORE:
+- const defaultPhone = process.env.DEFAULT_PHONE || '628123456789';
+
+AFTER:
+- const defaultPhone = config.baileys.defaultPhone || '628123456789';
+
+### 4. PWA Environment Example Created ✅
+
+**File: pwa/.env.example**
+
+NEW FILE with:
+- VITE_API_BASE_URL=/api/v1
+- VITE_WS_URL=http://localhost:8080
+- Production config examples
+
+=================================================
+
+## REMAINING ISSUES (Not Fixed Yet)
+
+### HIGH PRIORITY
+
+1. **MQTT Topics Mismatch**
+   Location: backend/src/services/mqtt.ts
+   Issue: Backend sends wrong topic names
+   
+   Current:
+   - smartparcel/${deviceId}/control
+   
+   Should be:
+   - smartparcel/${deviceId}/lock/set
+   - smartparcel/${deviceId}/cmd/capture
+   - smartparcel/${deviceId}/buzzer/trigger
+   
+   Impact: PWA controls won't work with firmware
+
+2. **Hardcoded require() Instead of import**
+   Locations:
+   - backend/src/routes/packages.ts line 92
+   - backend/src/services/baileys.ts line 185-186
+   
+   Should use ES6 imports at top of file
+
+### MEDIUM PRIORITY
+
+3. **Firmware Configuration**
+   Files: 
+   - firmware/test/ESP32CAM_Test.ino
+   - firmware/test/ESP8266_Test.ino
+   
+   Issues:
+   - WiFi credentials hardcoded
+   - MQTT credentials hardcoded
+   - API_TOKEN hardcoded
+   - Server URL hardcoded
+   
+   Recommendation: Create config.h.example template
+
+4. **PWA Vite Config Hardcoded URLs**
+   File: pwa/vite.config.ts
+   
+   Lines 54, 66, 85, 89, 93 have hardcoded localhost:8080
+   Should use environment variables
+
+### SECURITY CONCERNS
+
+5. **MQTT Credentials Exposed**
+   Files with hardcoded credentials:
+   - backend/src/config.ts (OK - has fallback)
+   - firmware/test/ESP32CAM_Test.ino ⚠️
+   - firmware/test/ESP8266_Test.ino ⚠️
+   
+   Password: "engganngodinginginmcu" visible in code
+
+6. **Weak Security Token Fallbacks**
+   - JWT_SECRET: 'dev_jwt_secret_change_in_production'
+   - API_TOKEN: 'device_token_change_this'
+   
+   Should require these in production (no fallback)
+
+=================================================
+
+## WHATSAPP ERROR 405 - TROUBLESHOOTING
+
+Error 405 means WhatsApp Web blocked the connection.
+
+### Fixes Applied:
+1. ✅ Version changed to 2.2409.2 (stable)
+2. ✅ Browser identifier changed to Ubuntu/Chrome
+3. ✅ Timeout increased to 60s
+4. ✅ Session folder cleared (was empty)
+
+### Next Steps to Test:
+1. **Stop Backend**
+   - Ctrl+C in terminal
+   
+2. **Start Backend Fresh**
+   ```
+   cd backend
+   npm run dev
+   ```
+   
+3. **Wait for:**
+   ```
+   ⚡ Using WhatsApp Web version: 2.2409.2
+   ```
+   
+4. **Refresh Browser**
+   - F5 in PWA
+   
+5. **Click "Start" on WhatsApp Page**
+   - Should show QR code (no 405)
+   - Scan with phone
+   
+6. **If Still 405:**
+   - Try different version: [2, 2410, 1]
+   - Or try: [2, 3000, 0]
+   - Or wait 1-2 hours (IP might be rate-limited)
+
+### Alternative: Use Official baileys-bot Template
+If 405 persists, WhatsApp might be blocking the IP.
+Consider using proxy or VPN.
+
+=================================================
+
+## TEST CHECKLIST
+
+After backend restart, test:
+
+- [ ] WhatsApp: Click Start → QR appears (no 405)
+- [ ] WhatsApp: Scan QR → Connected
+- [ ] Dashboard: See distance readings
+- [ ] Packages: Upload photo works
+- [ ] WhatsApp: Photo notification received
+
+=================================================
+
+## FILES MODIFIED
+
+1. backend/src/config.ts
+   - Fixed baileys.dataDir
+   - Added baileys.defaultPhone
+   - Fixed vapid.subject env name
+
+2. backend/src/services/baileys.ts
+   - Version: 2.2409.2
+   - Browser: Ubuntu/Chrome
+   - Dynamic error messages
+
+3. backend/src/routes/packages.ts
+   - Use config.baileys.defaultPhone
+
+4. pwa/.env.example
+   - NEW FILE created
+
+=================================================
+
+## NOTES
+
+- wa-session folder was EMPTY (no corrupt files)
+- Error 405 is WhatsApp server-side block
+- May need to try different versions or wait
+- All config inconsistencies FIXED
+- Backend must RESTART to apply changes
+
+=================================================
+END OF REPORT

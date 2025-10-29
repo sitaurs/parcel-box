@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: parcel-box-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: parcelbox
+      POSTGRES_PASSWORD: parcelbox_secret
+      POSTGRES_DB: parcelbox
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - parcel-network
+
+  # Backend Server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: parcel-box-backend
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgresql://parcelbox:parcelbox_secret@db:5432/parcelbox
+      STORAGE_DIR: /app/storage
+      JWT_SECRET: ${JWT_SECRET}
+      API_TOKEN: ${API_TOKEN}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_EMAIL: ${VAPID_EMAIL}
+      BAILEYS_DATA_DIR: /app/wa-session
+      CORS_ORIGIN: http://localhost,http://localhost:5173
+    volumes:
+      - storage_data:/app/storage
+      - wa_session:/app/wa-session
+    ports:
+      - "8080:8080"
+    networks:
+      - parcel-network
+
+  # PWA Frontend (optional - for serving built PWA)
+  pwa:
+    image: nginx:alpine
+    container_name: parcel-box-pwa
+    restart: unless-stopped
+    volumes:
+      - ./pwa/dist:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - parcel-network
+
+volumes:
+  postgres_data:
+  storage_data:
+  wa_session:
+
+networks:
+  parcel-network:
+    driver: bridge

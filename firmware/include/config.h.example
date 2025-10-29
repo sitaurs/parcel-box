@@ -1,0 +1,99 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// ========================================
+// WiFi Configuration
+// ========================================
+#define WIFI_SSID "YourWiFiSSID"
+#define WIFI_PASSWORD "YourWiFiPassword"
+
+// ========================================
+// API Configuration (Backend Server)
+// ========================================
+#define API_BASE_URL "192.168.1.100"     // Backend IP address or domain
+#define API_PORT 8080                    // Backend port
+#define DEVICE_ID "box-01"               // Unique device identifier
+#define API_TOKEN "CHANGE_THIS_TOKEN"    // Device authentication token
+
+// ========================================
+// MQTT Configuration
+// ========================================
+#define MQTT_HOST "mqtt.yourserver.com"  // MQTT broker address
+#define MQTT_PORT 1883                   // MQTT broker port
+#define MQTT_USER "smartbox"             // MQTT username
+#define MQTT_PASS "CHANGE_THIS_PASSWORD" // MQTT password
+
+// ========================================
+// Hardware Pin Configuration (ESP32-CAM)
+// ========================================
+#define PIN_LOCK_RELAY 13      // GPIO13 - Solenoid lock control (Active LOW)
+#define PIN_LAMP_RELAY 4       // GPIO4  - LED lamp control (Active LOW)
+#define PIN_TRIG 12            // GPIO12 - HC-SR04 Trigger pin
+#define PIN_ECHO 15            // GPIO15 - HC-SR04 Echo pin
+#define PIN_BUZZER 16          // GPIO16 - Buzzer control (via MOSFET)
+
+// ========================================
+// Hardware Pin Configuration (ESP8266)
+// ========================================
+// If using ESP8266 for relay control:
+// #define PIN_LOCK_RELAY D1   // NodeMCU D1 (GPIO5)
+// #define PIN_LAMP_RELAY D2   // NodeMCU D2 (GPIO4)
+// #define PIN_BUZZER D3       // NodeMCU D3 (GPIO0)
+
+// ========================================
+// Detection Parameters (HC-SR04 Sensor)
+// ========================================
+#define DISTANCE_MIN_CM 12     // Minimum distance for package detection (cm)
+#define DISTANCE_MAX_CM 25     // Maximum distance for package detection (cm)
+#define DISTANCE_DROP_CM 40    // Distance threshold for dropped package (cm)
+#define DISTANCE_EMPTY_CM 60   // Distance when box is completely empty (cm)
+
+// ========================================
+// Timing Configuration
+// ========================================
+#define SENSOR_READ_INTERVAL 500    // Sensor reading interval (ms)
+#define MQTT_PUBLISH_INTERVAL 2000  // MQTT publish interval (ms)
+#define WIFI_TIMEOUT 30000          // WiFi connection timeout (ms)
+#define MQTT_TIMEOUT 15000          // MQTT connection timeout (ms)
+#define BUZZER_DURATION 200         // Default buzzer duration (ms)
+#define PHOTO_CAPTURE_DELAY 1000    // Delay before photo capture (ms)
+
+// ========================================
+// MQTT Topics (Must match backend!)
+// ========================================
+// Subscribe topics (receive commands from backend):
+#define TOPIC_LOCK_SET "smartparcel/" DEVICE_ID "/lock/set"       // Lock control
+#define TOPIC_LAMP_SET "smartparcel/" DEVICE_ID "/lamp/set"       // Lamp control
+#define TOPIC_CMD_CAPTURE "smartparcel/" DEVICE_ID "/cmd/capture" // Manual capture
+#define TOPIC_BUZZER_TRIGGER "smartparcel/" DEVICE_ID "/buzzer/trigger" // Buzzer
+
+// Publish topics (send data to backend):
+#define TOPIC_STATUS "smartparcel/" DEVICE_ID "/status"           // Device status
+#define TOPIC_EVENT "smartparcel/" DEVICE_ID "/event"             // Events
+#define TOPIC_DISTANCE "smartparcel/" DEVICE_ID "/sensor/distance" // Distance data
+#define TOPIC_PHOTO_STATUS "smartparcel/" DEVICE_ID "/photo/status" // Photo upload status
+
+// ========================================
+// Camera Configuration (ESP32-CAM AI-Thinker)
+// ========================================
+#define CAMERA_MODEL_AI_THINKER  // AI-Thinker ESP32-CAM
+#define FRAMESIZE FRAMESIZE_SVGA // 800x600 (good balance of quality/size)
+#define JPEG_QUALITY 10          // JPEG quality (0-63, lower = better quality)
+
+// ========================================
+// Debug Configuration
+// ========================================
+#define DEBUG_SERIAL true        // Enable serial debug output
+#define SERIAL_BAUD 115200       // Serial baud rate
+
+// ========================================
+// ⚠️ SECURITY NOTES:
+// ========================================
+// 1. Copy this file to config.h (not tracked by Git)
+// 2. Update ALL credentials above with secure values
+// 3. Never commit config.h to version control
+// 4. Use strong, random passwords (24+ characters)
+// 5. Rotate credentials every 90 days
+// 6. See FIRMWARE_SECURITY.md for details
+
+#endif // CONFIG_H

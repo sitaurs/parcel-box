@@ -1,0 +1,940 @@
+﻿Laporan Dokumentasi Komprehensif: Pustaka Baileys WhatsApp API
+
+
+
+
+Bagian 1: Pengantar dan Konfigurasi Awal
+
+
+
+
+1.1. Arsitektur Baileys: Interaksi Berbasis WebSocket
+
+
+Baileys adalah sebuah pustaka (library) TypeScript/JavaScript yang dirancang untuk berinteraksi dengan WhatsApp Web API melalui koneksi WebSocket langsung. Arsitektur ini merupakan keunggulan fundamental dibandingkan metode otomasi lain yang bergantung pada peramban (browser) seperti Selenium atau Puppeteer. Dengan tidak menjalankan instance peramban Chromium, Baileys secara signifikan mengurangi konsumsi memori (RAM), seringkali menghemat hingga setengah gigabyte atau lebih, menjadikannya solusi yang sangat efisien untuk aplikasi sisi server.1
+Penting untuk dipahami bahwa Baileys meniru perilaku klien WhatsApp Web Multi-Device, yang terhubung ke akun WhatsApp personal atau bisnis (aplikasi seluler) melalui fitur "Perangkat Tertaut".3 Ini berbeda secara fundamental dari WhatsApp Business API (WABA) resmi yang disediakan oleh Meta. Akibatnya, Baileys beroperasi dalam batasan dan kapabilitas akun pengguna standar, bukan platform bisnis berskala besar.
+Interaksi langsung melalui WebSocket berarti Baileys sangat bergantung pada protokol internal WhatsApp yang tidak didokumentasikan secara publik. Ketergantungan ini memiliki implikasi signifikan: setiap pembaruan atau perubahan pada protokol oleh WhatsApp dapat berpotensi merusak fungsionalitas Baileys tanpa pemberitahuan sebelumnya. Hal ini menggarisbawahi status "tidak resmi" pustaka ini dan risiko inheren yang menyertainya.3 Pengembang yang menggunakan Baileys harus siap menghadapi siklus pembaruan pustaka yang sering dan potensi adanya perubahan yang dapat merusak (breaking changes) untuk menjaga kompatibilitas. Ketergantungan pada protokol internal ini merupakan sebuah pertukaran (trade-off) antara efisiensi kinerja yang tinggi dengan stabilitas jangka panjang yang lebih rendah dibandingkan dengan API publik yang stabil.
+
+
+1.2. Lingkungan Pengembangan: Prasyarat dan Instalasi
+
+
+Untuk menggunakan Baileys secara efektif, lingkungan pengembangan yang sesuai harus disiapkan. Prasyarat utama adalah versi Node.js yang kompatibel. Dokumentasi dan berbagai implementasi merekomendasikan Node.js versi 17+ atau yang lebih baru, dengan beberapa proyek turunan menyarankan versi 18.19.0 atau lebih tinggi untuk stabilitas optimal.4
+Instalasi pustaka dapat dilakukan melalui manajer paket standar Node.js. Pengembang dapat memilih antara versi stabil yang dirilis secara berkala atau versi edge yang diambil langsung dari repositori GitHub untuk mendapatkan fitur dan perbaikan terbaru.
+Perintah Instalasi:
+* Menggunakan npm:
+Bash
+npm install @whiskeysockets/baileys
+
+* Menggunakan yarn:
+Bash
+# Versi Stabil
+yarn add @whiskeysockets/baileys
+
+# Versi Edge (terbaru, potensi tidak stabil)
+yarn add github:WhiskeySockets/Baileys
+
+1
+Selain pustaka inti Baileys, beberapa dependensi opsional sangat direkomendasikan untuk fungsionalitas tambahan yang umum digunakan:
+   * qrcode-terminal: Pustaka ini memungkinkan kode QR autentikasi untuk dicetak langsung di terminal, menyederhanakan proses login awal selama pengembangan.7
+   * link-preview-js: Secara default, WhatsApp Web tidak menghasilkan pratinjau tautan. Dependensi ini memungkinkan Baileys untuk membuat konten pratinjau tautan sebelum mengirim pesan.1
+   * pino: Pustaka logging yang digunakan secara default oleh Baileys. Meskipun Baileys dapat dikonfigurasi dengan logger lain, pino adalah pilihan yang didukung secara native.10
+
+
+1.3. Inisialisasi Proyek: Struktur Dasar dan Peringatan
+
+
+Memulai proyek dengan Baileys melibatkan pembuatan file entri (misalnya, index.js atau bot.ts) dan mengimpor fungsi-fungsi inti. Struktur dasar sebuah bot Baileys biasanya melibatkan fungsi asinkron untuk menginisialisasi koneksi soket.
+Contoh Kode Inisialisasi Dasar:
+
+
+JavaScript
+
+
+
+
+import makeWASocket, { useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
+import { Boom } from '@hapi/boom';
+import P from 'pino';
+
+async function connectToWhatsApp() {
+   const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+
+   const sock = makeWASocket({
+       auth: state,
+       printQRInTerminal: true,
+       logger: P({ level: 'silent' })
+   });
+
+   sock.ev.on('creds.update', saveCreds);
+
+   sock.ev.on('connection.update', (update) => {
+       const { connection, lastDisconnect } = update;
+       if (connection === 'close') {
+           const shouldReconnect = (lastDisconnect.error as Boom)?.output?.statusCode!== DisconnectReason.loggedOut;
+           console.log('Koneksi ditutup karena ', lastDisconnect.error, ', menyambungkan kembali ', shouldReconnect);
+           if (shouldReconnect) {
+               connectToWhatsApp();
+           }
+       } else if (connection === 'open') {
+           console.log('Koneksi berhasil dibuka');
+       }
+   });
+
+   sock.ev.on('messages.upsert', async m => {
+       console.log(JSON.stringify(m, undefined, 2));
+   });
+}
+
+connectToWhatsApp();
+
+3
+Sebelum melanjutkan, sangat penting untuk memahami dan mematuhi peringatan hukum dan etika yang secara konsisten ditekankan di seluruh ekosistem Baileys. Pustaka ini tidak berafiliasi, didukung, atau secara resmi terhubung dengan WhatsApp atau perusahaan induknya, Meta.4 Penggunaannya membawa risiko, termasuk kemungkinan pemblokiran akun jika terdeteksi melanggar Ketentuan Layanan WhatsApp. Penggunaan Baileys untuk spam, pengiriman pesan massal tanpa izin, atau aktivitas terlarang lainnya sangat tidak dianjurkan.3
+Peringatan anti-spam ini bukan sekadar penafian hukum, melainkan panduan teknis yang krusial. Sistem WhatsApp secara aktif memantau dan memblokir akun yang menunjukkan perilaku seperti bot. Oleh karena itu, membangun bot yang berkelanjutan secara teknis memerlukan implementasi strategi untuk meniru perilaku manusia dan menghindari deteksi. Praktik terbaik, seperti menambahkan penundaan acak antar pesan, mempersonalisasi konten, dan menyediakan mekanisme opt-out yang jelas, adalah komponen penting untuk keberhasilan jangka panjang setiap aplikasi yang dibangun di atas Baileys.3
+
+
+Bagian 2: Konsep Inti - Konfigurasi Soket
+
+
+
+
+2.1. Inisialisasi Klien dengan makeWASocket
+
+
+Titik masuk utama untuk semua interaksi dengan WhatsApp menggunakan Baileys adalah fungsi makeWASocket. Fungsi ini bertanggung jawab untuk membuat instance soket, mengelola koneksi WebSocket, dan menangani enkripsi end-to-end. Fungsi ini menerima satu argumen: sebuah objek konfigurasi yang sesuai dengan tipe UserFacingSocketConfig.4 Konfigurasi yang tepat sangat penting karena memengaruhi segala hal mulai dari autentikasi, logging, kinerja, hingga fungsionalitas spesifik seperti sinkronisasi riwayat dan penanganan grup.
+
+
+2.2. Parameter Konfigurasi Fundamental
+
+
+Meskipun UserFacingSocketConfig memiliki banyak opsi, ada tiga properti yang secara efektif bersifat wajib untuk operasi yang stabil dan fungsional.
+   * auth: Properti ini adalah yang paling krusial, karena bertanggung jawab atas manajemen status autentikasi. Ini adalah objek yang menyimpan semua kredensial dan kunci enkripsi yang diperlukan untuk mempertahankan sesi yang terhubung. Tanpa mekanisme auth yang persisten, pengguna harus memindai kode QR setiap kali aplikasi dimulai ulang. Implementasi auth akan dibahas secara mendalam di Bagian 3.10
+   * logger: Baileys menggunakan pustaka pino untuk logging secara default. Menyediakan instance logger adalah wajib. Logging sangat penting untuk debugging, karena interaksi WebSocket bersifat kompleks dan seringkali tidak transparan. Pengembang dapat mengonfigurasi level log untuk mengontrol verbositas, misalnya, menggunakan level: 'silent' untuk menonaktifkan output selama produksi atau level: 'debug' untuk pemecahan masalah yang mendalam.3
+   * getMessage: Properti ini adalah sebuah fungsi yang harus diimplementasikan oleh pengembang. Peranannya adalah untuk mengambil pesan yang telah dikirim sebelumnya dari penyimpanan data (misalnya, database) berdasarkan kuncinya. Fungsi ini sangat penting untuk dua skenario utama: mendekripsi suara jajak pendapat (poll votes) dan memungkinkan sistem internal Baileys untuk mencoba kembali mengirim pesan yang mungkin gagal terkirim karena masalah jaringan.1 Persyaratan untuk getMessage secara implisit menunjukkan bahwa Baileys sendiri tidak menyimpan riwayat pesan; ia beroperasi sebagai klien yang stateless terhadap konten pesan. Keputusan desain ini memaksa pengembang untuk segera mengimplementasikan solusi penyimpanan data mereka sendiri. Mengabaikan implementasi getMessage akan menyebabkan fitur-fitur penting gagal secara diam-diam, yang mungkin tidak segera terlihat oleh pengembang baru. Oleh karena itu, menyimpan setiap pesan yang dikirim dan diterima ke database bukan hanya praktik terbaik, tetapi merupakan prasyarat untuk fungsionalitas penuh.
+
+
+2.3. Opsi Konfigurasi Lanjutan untuk Kinerja dan Fungsionalitas
+
+
+Selain properti fundamental, Baileys menawarkan serangkaian opsi konfigurasi lanjutan yang memungkinkan penyesuaian perilaku soket secara mendalam.
+   * browser: Opsi ini memungkinkan penyesuaian string User-Agent yang dikirim ke server WhatsApp. Ini berguna untuk meniru berbagai perangkat. Misalnya, untuk mengaktifkan sinkronisasi riwayat penuh, string browser harus diatur ke klien desktop, seperti Browsers.macOS("Desktop"). Opsi ini juga menjadi wajib saat menggunakan metode login dengan kode pemasangan (pairing code) untuk memastikan kompatibilitas.1
+   * syncFullHistory: Ketika diatur ke true (bersama dengan konfigurasi browser yang sesuai), opsi ini menginstruksikan Baileys untuk mencoba mengunduh riwayat obrolan yang lebih lengkap saat koneksi pertama kali dibuat, meniru perilaku klien desktop WhatsApp.9
+   * markOnlineOnConnect: Secara default, Baileys akan menyiarkan status "online" saat terhubung, yang dapat mencegah notifikasi pesan baru muncul di perangkat seluler utama. Mengatur opsi ini ke false akan menonaktifkan perilaku ini, memungkinkan notifikasi tetap berfungsi seperti biasa.10
+   * cachedGroupMetadata: Ini adalah opsi kinerja yang sangat direkomendasikan untuk aplikasi yang berinteraksi dengan grup. Saat mengirim pesan ke grup, Baileys perlu mengambil daftar peserta untuk mengenkripsi pesan bagi setiap anggota. Melakukan permintaan ini setiap kali dapat dengan cepat menyebabkan pembatasan laju (rate limiting) atau bahkan pemblokiran oleh WhatsApp. Dengan menyediakan fungsi cachedGroupMetadata, pengembang dapat mengimplementasikan mekanisme cache (misalnya, menggunakan NodeCache atau Redis) untuk menyimpan metadata grup, sehingga mengurangi jumlah panggilan jaringan yang berulang secara drastis.1
+
+
+2.4. Tabel Referensi: Opsi Konfigurasi UserFacingSocketConfig
+
+
+Dokumentasi resmi yang terfragmentasi dapat menyulitkan pengembang untuk mendapatkan gambaran lengkap tentang semua opsi konfigurasi yang tersedia. Tabel berikut merangkum opsi-opsi yang paling penting dalam satu referensi terpusat, menjelaskan peran masing-masing dan memberikan contoh penggunaan.
+Opsi
+	Wajib/Direkomendasikan
+	Tipe Data/Nilai
+	Deskripsi
+	Contoh Kode
+	auth
+	Wajib
+	AuthenticationState
+	Objek yang mengelola kredensial sesi. Harus diimplementasikan untuk persistensi.
+	auth: state
+	logger
+	Wajib
+	pino.Logger
+	Instance logger untuk debugging dan pemantauan.
+	logger: P({ level: 'debug' })
+	getMessage
+	Wajib
+	`(key: proto.IMessageKey) => Promise<proto.IMessage
+	undefined>`
+	Fungsi untuk mengambil pesan yang tersimpan dari database, diperlukan untuk dekripsi jajak pendapat dan percobaan ulang.
+	browser
+	Direkomendasikan
+	[string, string, string]
+	Mengatur User-Agent. Penting untuk syncFullHistory dan kode pemasangan.
+	browser: Browsers.macOS('Desktop')
+	syncFullHistory
+	Opsional
+	boolean
+	Jika true, mencoba menyinkronkan riwayat pesan penuh saat terhubung (memerlukan browser desktop).
+	syncFullHistory: true
+	markOnlineOnConnect
+	Opsional
+	boolean
+	Jika false, mencegah klien menandai "online" saat terhubung, menjaga notifikasi ponsel.
+	markOnlineOnConnect: false
+	cachedGroupMetadata
+	Sangat Direkomendasikan
+	`(jid: string) => Promise<GroupMetadata
+	undefined>`
+	Fungsi untuk menyediakan cache metadata grup, mencegah rate limiting.
+	printQRInTerminal
+	Opsional (Pengembangan)
+	boolean
+	Jika true, secara otomatis mencetak kode QR ke terminal.
+	printQRInTerminal: true
+	version
+	Direkomendasikan Default
+	[number, number, number]
+	Versi WhatsApp Web yang akan ditiru. Sebaiknya dibiarkan default untuk kompatibilitas maksimum.
+	-
+	
+
+Bagian 3: Autentikasi dan Manajemen Sesi
+
+
+
+
+3.1. Siklus Hidup Koneksi: Menangani Event connection.update
+
+
+Inti dari manajemen sesi di Baileys adalah event connection.update. Event ini dipancarkan setiap kali ada perubahan dalam status koneksi WebSocket ke server WhatsApp. Dengan mendengarkan event ini, aplikasi dapat secara reaktif menangani seluruh siklus hidup koneksi, mulai dari inisialisasi hingga pemutusan.15
+Objek update yang diterima oleh pendengar event ini berisi beberapa properti kunci:
+   * connection: Sebuah string yang menunjukkan status koneksi saat ini. Nilai yang umum adalah 'connecting', 'open' (menandakan koneksi berhasil), dan 'close' (menandakan koneksi terputus).7
+   * lastDisconnect: Sebuah objek yang tersedia ketika connection adalah 'close'. Objek ini berisi error (objek Boom yang merinci penyebab pemutusan) dan date (waktu pemutusan).7
+   * qr: Sebuah string yang berisi data untuk kode QR, yang hanya muncul selama fase autentikasi awal.15
+Contoh Penanganan Event connection.update:
+
+
+JavaScript
+
+
+
+
+sock.ev.on('connection.update', (update) => {
+   const { connection, lastDisconnect, qr } = update;
+
+   if (qr) {
+       console.log('Pindai kode QR ini dengan WhatsApp Anda...');
+       // Logika untuk menampilkan QR, misalnya menggunakan qrcode-terminal
+   }
+
+   if (connection === 'close') {
+       const statusCode = (lastDisconnect.error as Boom)?.output?.statusCode;
+       console.log(`Koneksi ditutup. Kode status: ${statusCode}`);
+       // Logika koneksi ulang akan dibahas di bawah
+   } else if (connection === 'open') {
+       console.log('Koneksi berhasil dan terbuka!');
+   }
+});
+
+7
+
+
+3.2. Metode Penyambungan Perangkat: Kode QR vs. Kode Pemasangan
+
+
+Baileys mendukung dua metode utama untuk menautkan perangkat dan mengautentikasi sesi baru.
+   * Metode Kode QR (QR Code): Ini adalah metode yang paling umum. Selama proses koneksi awal, jika tidak ada kredensial yang valid, event connection.update akan memancarkan string qr. String ini harus diambil dan diubah menjadi gambar kode QR yang dapat dipindai oleh pengguna melalui aplikasi WhatsApp di ponsel mereka (Pengaturan > Perangkat Tertaut > Tautkan Perangkat). Setelah dipindai, server WhatsApp akan mengautentikasi sesi.15
+   * Metode Kode Pemasangan (Pairing Code): Sebagai alternatif pemindaian QR, Baileys memungkinkan autentikasi menggunakan nomor telepon dan kode 8 digit. Metode ini sangat berguna untuk lingkungan headless di mana menampilkan gambar QR tidak praktis. Prosesnya adalah sebagai berikut:
+   1. Panggil fungsi sock.requestPairingCode(phoneNumber).
+   2. Parameter phoneNumber harus berupa string nomor telepon dalam format E.164, tanpa karakter non-numerik seperti +, -, atau spasi (misalnya, 6281234567890).15
+   3. Fungsi ini akan mengembalikan kode 8 digit.
+   4. Kode ini kemudian harus dimasukkan oleh pengguna di ponsel mereka di bawah Pengaturan > Perangkat Tertaut > Tautkan dengan nomor telepon.1
+
+
+3.3. Persistensi Kredensial: Strategi Menyimpan dan Memulihkan Sesi
+
+
+Menyimpan status autentikasi secara persisten adalah fundamental untuk aplikasi produksi. Tanpa itu, setiap kali aplikasi dimulai ulang, proses pemindaian QR atau pemasangan kode harus diulang. Baileys memfasilitasi ini melalui objek auth dalam konfigurasinya dan event creds.update.
+Event creds.update dipancarkan setiap kali ada perubahan pada kredensial sesi, yang dapat terjadi selama login awal, saat kunci enkripsi diperbarui, atau selama operasi normal lainnya. Aplikasi harus mendengarkan event ini dan segera menyimpan status autentikasi yang diperbarui ke penyimpanan yang persisten.3
+Baileys menyediakan fungsi utilitas useMultiFileAuthState untuk tujuan demonstrasi. Fungsi ini menyimpan kredensial dalam beberapa file JSON di folder lokal. Namun, fungsi ini secara eksplisit tidak direkomendasikan untuk produksi karena sangat tidak efisien dan menyebabkan banyak operasi I/O file, yang dapat menurunkan kinerja secara signifikan.4
+Untuk produksi, strategi yang direkomendasikan adalah mengimplementasikan handler auth kustom yang berinteraksi dengan sistem database yang lebih kuat seperti:
+   * Database SQL (misalnya, MySQL, PostgreSQL): Menyimpan kredensial dalam tabel, memungkinkan skalabilitas dan manajemen sesi yang terstruktur.17
+   * Database NoSQL (misalnya, MongoDB): Struktur dokumen JSON-nya cocok secara alami dengan format kredensial Baileys.
+   * Penyimpanan In-Memory (misalnya, Redis): Memberikan akses yang sangat cepat ke data sesi, ideal untuk aplikasi berkinerja tinggi.10
+
+
+3.4. Penanganan Pemutusan dan Logika Koneksi Ulang
+
+
+Aplikasi yang tangguh harus dapat pulih dari pemutusan koneksi yang tidak terduga, baik karena masalah jaringan, pemeliharaan server WhatsApp, atau alasan lainnya. Logika untuk ini diimplementasikan di dalam handler event connection.update.
+Pendekatan yang kuat adalah dengan mengimplementasikan mesin status (state machine) sederhana. Ketika event connection.update diterima dengan connection: 'close', langkah pertama adalah memeriksa lastDisconnect.error. Properti ini berisi kode status yang memberikan konteks tentang mengapa koneksi terputus.
+   * DisconnectReason.loggedOut: Kode status ini (biasanya 401) berarti kredensial yang digunakan tidak lagi valid. Ini bisa terjadi jika pengguna keluar dari sesi melalui ponsel mereka. Dalam kasus ini, aplikasi tidak boleh mencoba menghubungkan kembali. Sebaliknya, ia harus menghapus kredensial yang tersimpan dan memulai kembali proses autentikasi (misalnya, dengan meminta pemindaian QR baru).3
+   * DisconnectReason.restartRequired: Kode status ini (biasanya 428) sering terjadi setelah pemindaian QR pertama yang berhasil. Ini adalah bagian normal dari alur autentikasi, di mana WhatsApp secara paksa memutuskan koneksi untuk menyelesaikannya. Penanganannya adalah dengan segera memanggil kembali fungsi koneksi utama untuk membuat instance soket baru.15
+   * Kesalahan Sementara Lainnya: Untuk kode status lain (misalnya, timeout, masalah jaringan), ini menunjukkan masalah sementara. Di sini, logika koneksi ulang otomatis harus diterapkan. Praktik terbaik adalah menerapkan strategi exponential backoff, di mana aplikasi menunggu interval waktu yang semakin lama antara setiap upaya koneksi ulang untuk menghindari membanjiri server. Ini mengubah penanganan kesalahan dari sekadar reaktif menjadi proaktif dan tangguh, memastikan bot dapat pulih secara mandiri dari gangguan sementara.
+
+
+Bagian 4: Menerima Pembaruan Real-Time (Event Handling)
+
+
+
+
+4.1. Model Berbasis Event pada Baileys
+
+
+Arsitektur Baileys secara fundamental bersifat asinkron dan berbasis event. Instance soket yang dibuat oleh makeWASocket adalah turunan dari kelas EventEmitter Node.js. Ini berarti bahwa alih-alih secara aktif meminta (polling) pembaruan, aplikasi hanya perlu "mendengarkan" atau "berlangganan" berbagai jenis event yang dipancarkan oleh soket saat terjadi aktivitas di akun WhatsApp.4 Model ini sangat efisien dan memungkinkan respons real-time terhadap pesan masuk, perubahan status, pembaruan grup, dan banyak lagi.
+
+
+4.2. Berlangsungganan Event dengan sock.ev.on()
+
+
+Sintaks untuk berlangganan event mengikuti pola standar EventEmitter: sock.ev.on('nama-event', (payload) => {... }). sock.ev adalah properti pada instance soket yang berfungsi sebagai event emitter. Argumen pertama adalah nama event yang ingin didengarkan (misalnya, 'messages.upsert'), dan argumen kedua adalah fungsi callback yang akan dieksekusi ketika event tersebut terjadi. Fungsi callback ini menerima payload yang berisi data relevan untuk event tersebut.3
+
+
+4.3. Tabel Referensi: Event-Event Kunci dan Penanganannya
+
+
+Baileys memancarkan berbagai macam event untuk mencakup hampir semua interaksi yang mungkin terjadi. Memahami event-event utama dan struktur payload mereka adalah kunci untuk membangun bot yang fungsional. Tabel berikut merangkum event-event yang paling penting, memberikan referensi terpusat yang menggabungkan daftar event dari dokumentasi dengan contoh-contoh praktis yang tersebar di berbagai sumber.
+Nama Event
+	Deskripsi
+	Parameter Payload
+	Contoh Penggunaan
+	connection.update
+	Dipancarkan saat status koneksi WebSocket berubah.
+	Partial<ConnectionState>
+	sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {... });
+	creds.update
+	Dipancarkan saat kredensial autentikasi diperbarui. Sangat penting untuk persistensi sesi.
+	Partial<AuthenticationCreds>
+	sock.ev.on('creds.update', saveCreds);
+	messages.upsert
+	Event utama untuk pesan masuk. Dipancarkan untuk pesan baru (notify) dan pesan riwayat (append).
+	{ messages: proto.IWebMessageInfo, type: 'notify' | 'append' }
+	sock.ev.on('messages.upsert', ({ messages }) => { for (const msg of messages) {... } });
+	messages.update
+	Dipancarkan saat status pesan yang ada berubah (misalnya, status pengiriman, telah dibaca, atau diedit).
+	MessageUpdate
+	sock.ev.on('messages.update', (updates) => {... });
+	messages.delete
+	Dipancarkan saat satu atau lebih pesan dihapus.
+	{ keys: proto.IMessageKey }
+	sock.ev.on('messages.delete', ({ keys }) => {... });
+	group-participants.update
+	Dipancarkan saat ada perubahan pada anggota grup (bergabung, keluar, dipromosikan, atau diturunkan).
+	{ id: string, participants: string, action: 'add' | 'remove' | 'promote' | 'demote' }
+	sock.ev.on('group-participants.update', ({ id, participants, action }) => {... });
+	groups.update
+	Dipancarkan saat metadata grup (seperti subjek atau deskripsi) diubah.
+	Partial<GroupMetadata>
+	sock.ev.on('groups.update', (updates) => {... });
+	chats.upsert
+	Dipancarkan saat obrolan baru dibuat.
+	Chat
+	sock.ev.on('chats.upsert', (newChats) => {... });
+	contacts.upsert
+	Dipancarkan saat kontak baru ditambahkan ke buku alamat perangkat utama.
+	Contact
+	sock.ev.on('contacts.upsert', (newContacts) => {... });
+	18
+
+
+Bagian 5: Memproses Pesan Masuk
+
+
+
+
+5.1. Anatomi Objek Pesan: proto.IWebMessageInfo
+
+
+Setiap pesan yang diterima melalui event messages.upsert dikemas dalam sebuah objek dengan format proto.IWebMessageInfo. Ini adalah struktur data Protobuf (Protocol Buffers) yang digunakan secara internal oleh WhatsApp Web untuk menyimpan dan mengirimkan semua informasi yang terkait dengan sebuah pesan.20 Memahami struktur ini sangat penting untuk dapat mengekstrak informasi yang relevan.
+Beberapa properti kunci dari objek IWebMessageInfo meliputi:
+   * key: Sebuah objek IMessageKey yang berisi pengidentifikasi unik untuk pesan tersebut. Properti ini sangat penting karena mengandung:
+   * remoteJid: JID (Jabber ID) dari obrolan (baik pengguna atau grup) tempat pesan itu berada.
+   * id: ID unik dari pesan itu sendiri.
+   * fromMe: Sebuah boolean yang menunjukkan apakah pesan ini dikirim oleh akun kita (true) atau diterima dari orang lain (false).
+   * participant: JID dari pengirim pesan yang sebenarnya di dalam obrolan grup.
+   * message: Objek IMessage yang berisi konten pesan yang sebenarnya (misalnya, teks, gambar, video).
+   * messageTimestamp: Timestamp Unix (dalam detik atau milidetik) yang menunjukkan kapan pesan itu dikirim.
+   * pushName: Nama profil pengguna yang mengirim pesan, seperti yang terlihat oleh klien.
+
+22
+
+
+5.2. Mengekstrak Informasi Esensial
+
+
+Dari objek IWebMessageInfo, informasi yang paling sering dibutuhkan dapat diekstrak sebagai berikut:
+      * JID Pengirim (Sender JID): Untuk obrolan pribadi, JID pengirim adalah m.key.remoteJid. Untuk obrolan grup, JID grup adalah m.key.remoteJid, sedangkan JID pengirim individu adalah m.key.participant.3
+      * Konten Pesan (Message Content): Konten pesan teks biasanya berada di salah satu dari dua properti di dalam m.message:
+      * m.message.conversation: Untuk pesan teks sederhana.
+      * m.message.extendedTextMessage.text: Untuk pesan teks yang memiliki metadata tambahan, seperti balasan atau pratinjau tautan.3
+      * Jenis Pesan (Message Type): Karena konten pesan dapat bervariasi (teks, gambar, stiker, dll.), penting untuk menentukan jenisnya sebelum mencoba memprosesnya. Baileys menyediakan fungsi utilitas getContentType(m.message) yang mengembalikan string yang mengidentifikasi jenis konten utama (misalnya, 'conversation', 'imageMessage').1
+      * Mengabaikan Pesan Sendiri: Dalam banyak kasus, bot tidak perlu merespons pesannya sendiri. Hal ini dapat dengan mudah dicapai dengan memeriksa properti m.key.fromMe. Jika true, pesan tersebut dapat diabaikan.8
+Contoh Kode Ekstraksi Informasi Pesan:
+
+
+JavaScript
+
+
+
+
+sock.ev.on('messages.upsert', async ({ messages }) => {
+   for (const msg of messages) {
+       // Jangan proses jika tidak ada pesan atau pesan dikirim oleh bot sendiri
+       if (!msg.message |
+
+| msg.key.fromMe) {
+           continue;
+       }
+
+       const senderJid = msg.key.remoteJid;
+       const messageType = getContentType(msg.message);
+       let messageContent = '';
+
+       if (messageType === 'conversation') {
+           messageContent = msg.message.conversation;
+       } else if (messageType === 'extendedTextMessage') {
+           messageContent = msg.message.extendedTextMessage.text;
+       }
+
+       console.log(`Pesan baru dari ${senderJid}: "${messageContent}"`);
+   }
+});
+
+8
+
+
+5.3. Membedakan Pesan Pribadi dan Grup
+
+
+Cara paling andal untuk membedakan antara pesan pribadi dan pesan grup adalah dengan memeriksa format JID yang terdapat di m.key.remoteJid. WhatsApp menggunakan sufiks yang berbeda untuk setiap jenis entitas:
+      * JID Pengguna Pribadi selalu diakhiri dengan @s.whatsapp.net.
+      * JID Grup selalu diakhiri dengan @g.us.
+
+1
+Dengan memeriksa akhir dari string remoteJid, aplikasi dapat dengan mudah menentukan konteks pesan dan menerapkan logika yang sesuai.
+Contoh Kode Pembedaan Konteks:
+
+
+JavaScript
+
+
+
+
+const remoteJid = msg.key.remoteJid;
+const isGroup = remoteJid.endsWith('@g.us');
+
+if (isGroup) {
+   const groupJid = remoteJid;
+   const participantJid = msg.key.participant;
+   console.log(`Pesan diterima di grup ${groupJid} dari partisipan ${participantJid}`);
+   // Logika khusus grup
+} else {
+   const userJid = remoteJid;
+   console.log(`Pesan pribadi diterima dari ${userJid}`);
+   // Logika khusus pesan pribadi
+}
+
+
+
+5.4. Mengunduh Konten Media dari Pesan
+
+
+Untuk pesan yang berisi media (gambar, video, audio, dokumen, stiker), kontennya tidak disematkan langsung di dalam objek pesan. Sebaliknya, objek pesan berisi metadata dan kunci yang diperlukan untuk mengunduh media tersebut dari server WhatsApp. Baileys menyederhanakan proses ini dengan fungsi utilitas downloadContentFromMessage.
+Fungsi ini mengambil objek pesan media (misalnya, msg.message.imageMessage) dan jenis media sebagai argumen, lalu mengembalikan sebuah stream atau buffer yang berisi data media mentah. Data ini kemudian dapat diproses lebih lanjut, seperti disimpan ke sistem file atau diunggah ke layanan lain.1
+Contoh Kode Mengunduh Gambar:
+
+
+JavaScript
+
+
+
+
+import { downloadContentFromMessage } from '@whiskeysockets/baileys';
+import fs from 'fs/promises';
+
+//... di dalam handler 'messages.upsert'
+if (getContentType(msg.message) === 'imageMessage') {
+   const stream = await downloadContentFromMessage(msg.message.imageMessage, 'image');
+   let buffer = Buffer.from();
+   for await (const chunk of stream) {
+       buffer = Buffer.concat([buffer, chunk]);
+   }
+   await fs.writeFile('./downloaded_image.jpg', buffer);
+   console.log('Gambar berhasil diunduh!');
+}
+
+
+
+Bagian 6: Mengirim Berbagai Jenis Pesan
+
+
+
+
+6.1. Fungsi Utama: sock.sendMessage
+
+
+Fungsi sock.sendMessage adalah metode universal untuk mengirim semua jenis pesan melalui Baileys. Fleksibilitasnya berasal dari cara ia menerima parameter, yang memungkinkan pengiriman konten yang sangat bervariasi, mulai dari teks sederhana hingga pesan interaktif yang kompleks.1
+Sintaks dasarnya adalah:
+sock.sendMessage(jid, content, options)
+         * jid (string): WhatsApp ID dari penerima. Ini bisa berupa JID pengguna (..._@s.whatsapp.net_) atau JID grup (..._@g.us_).
+         * content (objek): Objek yang mendefinisikan jenis dan isi pesan. Strukturnya bervariasi tergantung pada apa yang ingin dikirim.
+         * options (objek, opsional): Objek yang berisi konfigurasi tambahan atau metadata untuk pesan, seperti pesan yang akan dikutip (quoted) atau daftar pengguna yang akan disebut (mentions).
+1
+
+
+6.2. Mengirim Pesan Teks, Media, dan Non-Media
+
+
+Berikut adalah contoh cara menyusun objek content untuk berbagai jenis pesan umum:
+         * Pesan Teks:
+JavaScript
+await sock.sendMessage(jid, { text: 'Ini adalah pesan teks sederhana.' });
+
+2
+         * Pesan Gambar: Media dapat dikirim dari buffer file lokal atau dari URL publik.
+JavaScript
+import fs from 'fs';
+
+// Dari file lokal
+await sock.sendMessage(jid, {
+   image: fs.readFileSync('./path/to/image.jpg'),
+   caption: 'Ini adalah caption gambar.'
+});
+
+// Dari URL
+await sock.sendMessage(jid, {
+   image: { url: 'https://example.com/image.png' },
+   caption: 'Gambar dari URL.'
+});
+
+3
+         * Pesan Dokumen: Penting untuk menyertakan mimetype dan fileName agar dokumen ditampilkan dengan benar di klien WhatsApp.
+JavaScript
+await sock.sendMessage(jid, {
+   document: fs.readFileSync('./path/to/document.pdf'),
+   mimetype: 'application/pdf',
+   fileName: 'Laporan Penting.pdf'
+});
+
+         * Pesan Audio: Properti ptt: true dapat digunakan untuk mengirim audio sebagai pesan suara Push-to-Talk. Untuk kompatibilitas maksimum, disarankan untuk mengonversi audio ke format OGG dengan codec Opus.1
+JavaScript
+// Audio biasa
+await sock.sendMessage(jid, { audio: fs.readFileSync('./song.mp3'), mimetype: 'audio/mpeg' });
+
+// Pesan Suara (PTT)
+await sock.sendMessage(jid, { audio: fs.readFileSync('./voice.ogg'), ptt: true });
+
+         * Pesan Kontak (vCard):
+JavaScript
+const vcard = 'BEGIN:VCARD\n' +
+             'VERSION:3.0\n' +
+             'FN:Nama Kontak\n' +
+             'ORG:Organisasi;\n' +
+             'TEL;type=CELL;type=VOICE;waid=6281234567890:+62 812-3456-7890\n' +
+             'END:VCARD';
+
+await sock.sendMessage(jid, {
+   contacts: {
+       displayName: 'Nama Kontak',
+       contacts: [{ vcard }]
+   }
+});
+
+2
+
+
+6.3. Teknik Pengiriman Lanjutan
+
+
+Parameter options dari sendMessage membuka kemungkinan untuk interaksi yang lebih kaya.
+            * Mengutip Pesan (Reply): Untuk membalas pesan tertentu, teruskan objek pesan asli (m) dalam properti quoted. Baileys akan secara otomatis mengekstrak informasi yang diperlukan untuk menampilkan balasan dengan benar.
+JavaScript
+// 'm' adalah objek pesan yang diterima dari 'messages.upsert'
+await sock.sendMessage(m.key.remoteJid, { text: 'Ini adalah balasan.' }, { quoted: m });
+
+34
+            * Menyebut Pengguna (Mention): Dalam obrolan grup, Anda dapat menyebut satu atau lebih peserta dengan menyertakan JID mereka dalam array mentions di dalam objek content.
+JavaScript
+const groupJid = '..._@g.us_';
+const participantsToMention = ['..._@s.whatsapp.net_', '..._@s.whatsapp.net_'];
+await sock.sendMessage(groupJid, {
+   text: `Halo @${participantsToMention.split('@')} dan @${participantsToMention.split('@')}!`,
+   mentions: participantsToMention
+});
+
+32
+            * Pratinjau Tautan (Link Preview): Jika dependensi link-preview-js telah diinstal, Baileys dapat secara otomatis menghasilkan pratinjau untuk tautan yang disertakan dalam pesan teks. Ini adalah perilaku default, tetapi dapat dikontrol lebih lanjut.1
+
+
+6.4. Tabel Referensi: Objek content untuk sendMessage
+
+
+Struktur objek content yang bervariasi seringkali menjadi sumber kebingungan bagi pengembang. Tabel berikut berfungsi sebagai panduan referensi cepat untuk menyusun objek content yang benar untuk berbagai jenis pesan, mengatasi salah satu kelemahan utama dalam dokumentasi yang ada.
+Jenis Pesan
+	Properti Objek content
+	Contoh
+	Teks
+	text: string
+	{ text: 'Halo Dunia!' }
+	Gambar
+	image: Buffer | { url: string }, caption?: string
+	{ image: fs.readFileSync('img.png'), caption: 'Sebuah gambar' }
+	Video
+	video: Buffer | { url: string }, caption?: string, gifPlayback?: boolean
+	{ video: { url: '.../vid.mp4' }, caption: 'Sebuah video' }
+	Audio
+	audio: Buffer | { url: string }, mimetype: string, ptt?: boolean
+	{ audio: fs.readFileSync('audio.ogg'), ptt: true }
+	Dokumen
+	document: Buffer | { url: string }, mimetype: string, fileName: string
+	{ document: fs.readFileSync('doc.pdf'), mimetype: 'application/pdf', fileName: 'Laporan.pdf' }
+	Lokasi
+	location: { degreesLatitude: number, degreesLongitude: number }
+	{ location: { degreesLatitude: -6.20, degreesLongitude: 106.81 } }
+	Kontak
+	contacts: { displayName: string, contacts: { vcard: string } }
+	{ contacts: { displayName: 'Jeff', contacts: [{ vcard: '...' }] } }
+	Tombol
+	text: string, footer: string, buttons: Button, headerType: number
+	{ text: 'Pilih satu', buttons: [...] }
+	Template
+	text: string, footer: string, templateButtons: TemplateButton
+	{ text: 'Pilih template', templateButtons: [...] }
+	2
+
+
+Bagian 7: Manajemen Grup Tingkat Lanjut
+
+
+
+
+7.1. Membuat dan Mengelola Grup
+
+
+Baileys menyediakan serangkaian fungsi yang komprehensif untuk mengelola grup WhatsApp secara terprogram.
+               * Membuat Grup Baru:
+Fungsi sock.groupCreate digunakan untuk membuat grup baru. Fungsi ini membutuhkan dua argumen: subjek (nama) grup dan sebuah array yang berisi JID dari peserta awal.
+JavaScript
+const participants = ["..._@s.whatsapp.net_", "..._@s.whatsapp.net_"];
+const group = await sock.groupCreate("Nama Grup Baru", participants);
+console.log("Grup baru dibuat dengan ID:", group.id);
+// Secara opsional, kirim pesan selamat datang ke grup baru
+await sock.sendMessage(group.id, { text: 'Selamat datang di grup!' });
+
+2
+               * Mendapatkan Metadata Grup:
+Untuk mendapatkan informasi detail tentang sebuah grup, gunakan sock.groupMetadata. Fungsi ini mengambil JID grup sebagai argumen dan mengembalikan objek yang berisi subjek, deskripsi, ID, dan daftar lengkap peserta beserta peran mereka (admin/anggota).
+JavaScript
+const metadata = await sock.groupMetadata("..._@g.us_");
+console.log("Subjek Grup:", metadata.subject);
+console.log("Jumlah Peserta:", metadata.participants.length);
+
+14
+               * Meninggalkan Grup:
+Untuk keluar dari sebuah grup, gunakan fungsi sock.groupLeave.
+JavaScript
+await sock.groupLeave("..._@g.us_");
+console.log("Berhasil keluar dari grup.");
+
+13
+
+
+7.2. Memodifikasi Partisipan
+
+
+Manajemen anggota grup dilakukan melalui satu fungsi serbaguna, sock.groupParticipantsUpdate. Fungsi ini memungkinkan penambahan, penghapusan, promosi, dan demosi anggota.
+Sintaksnya adalah: sock.groupParticipantsUpdate(jid, participants, action)
+                  * jid: JID grup yang akan dimodifikasi.
+                  * participants: Array JID pengguna yang akan terpengaruh.
+                  * action: String yang menentukan tindakan yang akan dilakukan. Nilai yang valid adalah:
+                  * 'add': Untuk menambahkan anggota baru.
+                  * 'remove': Untuk mengeluarkan anggota.
+                  * 'promote': Untuk menjadikan anggota sebagai admin.
+                  * 'demote': Untuk mencabut status admin dari anggota.
+Contoh Penggunaan:
+
+
+JavaScript
+
+
+
+
+const groupJid = "..._@g.us_";
+const userJids = ["..._@s.whatsapp.net_"];
+
+// Menambahkan anggota
+await sock.groupParticipantsUpdate(groupJid, userJids, "add");
+
+// Menghapus anggota
+await sock.groupParticipantsUpdate(groupJid, userJids, "remove");
+
+// Mempromosikan menjadi admin
+await sock.groupParticipantsUpdate(groupJid, userJids, "promote");
+
+// Menurunkan dari admin
+await sock.groupParticipantsUpdate(groupJid, userJids, "demote");
+
+2
+Setiap kali tindakan ini berhasil, event group-participants.update akan dipancarkan, memungkinkan aplikasi lain untuk merespons perubahan keanggotaan grup secara real-time.18
+
+
+7.3. Memperbarui Metadata Grup
+
+
+Selain manajemen anggota, Baileys juga memungkinkan modifikasi informasi dan pengaturan grup.
+                  * Mengubah Subjek (Nama) Grup:
+JavaScript
+await sock.groupUpdateSubject("..._@g.us_", "Nama Grup yang Diperbarui");
+
+2
+                  * Mengubah Deskripsi Grup:
+JavaScript
+await sock.groupUpdateDescription("..._@g.us_", "Ini adalah deskripsi baru untuk grup.");
+
+2
+                  * Mengubah Pengaturan Grup:
+Fungsi sock.groupSettingUpdate digunakan untuk mengubah siapa yang dapat mengirim pesan atau mengedit info grup.
+JavaScript
+const groupJid = "..._@g.us_";
+
+// Mengatur agar hanya admin yang bisa mengirim pesan
+await sock.groupSettingUpdate(groupJid, 'announcement');
+
+// Mengatur agar semua anggota bisa mengirim pesan
+await sock.groupSettingUpdate(groupJid, 'not_announcement');
+
+// Mengunci info grup (hanya admin yang bisa mengedit)
+await sock.groupSettingUpdate(groupJid, 'locked');
+
+// Membuka kunci info grup (semua anggota bisa mengedit)
+await sock.groupSettingUpdate(groupJid, 'unlocked');
+
+13
+
+
+7.4. Tabel Referensi: Fungsi-Fungsi Manajemen Grup
+
+
+Meskipun dokumentasi resmi wiki sangat kurang detail mengenai manajemen grup, berbagai contoh kode dari repositori memberikan gambaran yang jelas. Tabel berikut menyatukan semua fungsi manajemen grup yang teridentifikasi ke dalam satu referensi yang komprehensif, mengatasi kelemahan signifikan dalam dokumentasi yang ada.
+Fungsi
+	Deskripsi
+	Parameter
+	Contoh Kode
+	groupCreate
+	Membuat grup baru.
+	subject: string, participants: string
+	await sock.groupCreate("Tim Proyek", ["..."])
+	groupMetadata
+	Mengambil detail lengkap grup.
+	jid: string
+	const meta = await sock.groupMetadata("...")
+	groupParticipantsUpdate
+	Menambah, menghapus, mempromosikan, atau menurunkan anggota.
+	jid: string, participants: string, action: string
+	await sock.groupParticipantsUpdate("...", ["..."], "add")
+	groupUpdateSubject
+	Mengubah nama grup.
+	jid: string, subject: string
+	await sock.groupUpdateSubject("...", "Nama Baru")
+	groupUpdateDescription
+	Mengubah deskripsi grup.
+	jid: string, description: string
+	await sock.groupUpdateDescription("...", "Deskripsi Baru")
+	groupSettingUpdate
+	Mengubah pengaturan izin grup.
+	jid: string, setting: 'announcement' | 'not_announcement' | 'locked' | 'unlocked'
+	await sock.groupSettingUpdate("...", 'announcement')
+	groupLeave
+	Keluar dari grup.
+	jid: string
+	await sock.groupLeave("...")
+	groupInviteCode
+	Mendapatkan kode undangan grup.
+	jid: string
+	const code = await sock.groupInviteCode("...")
+	2
+
+
+Bagian 8: Fitur Tambahan dan Utilitas
+
+
+
+
+8.1. Memodifikasi Status Obrolan (chatModify)
+
+
+Baileys menyediakan fungsi sock.chatModify yang sangat berguna untuk melakukan berbagai tindakan pada tingkat obrolan, seperti mengarsipkan, menyematkan, dan menghapus. Fungsi ini mengambil dua argumen utama: objek change yang mendefinisikan modifikasi, dan jid dari obrolan yang akan diubah.13
+Berikut adalah beberapa penggunaan umum dari chatModify:
+                     * Mengarsipkan dan Membatalkan Pengarsipan Obrolan:
+JavaScript
+// Mengarsipkan obrolan
+await sock.chatModify({ archive: true }, jid);
+
+// Membatalkan pengarsipan
+await sock.chatModify({ archive: false }, jid);
+
+36
+                     * Menyematkan dan Melepas Sematan Obrolan:
+JavaScript
+// Menyematkan obrolan ke atas
+await sock.chatModify({ pin: true }, jid);
+
+// Melepas sematan
+await sock.chatModify({ pin: false }, jid);
+
+26
+                     * Membisukan dan Membunyikan Notifikasi:
+Untuk membisukan, berikan timestamp di masa depan (dalam milidetik) yang menandakan kapan pembisuan berakhir. Gunakan null untuk membunyikan kembali.
+JavaScript
+// Membisukan selama 8 jam
+const muteEndTime = Date.now() + 8 * 60 * 60 * 1000;
+await sock.chatModify({ mute: muteEndTime }, jid);
+
+// Membunyikan kembali
+await sock.chatModify({ mute: null }, jid);
+
+13
+                     * Menandai sebagai Dibaca atau Belum Dibaca:
+JavaScript
+// Menandai obrolan sebagai belum dibaca
+await sock.chatModify({ markRead: false }, jid);
+
+13
+                     * Menghapus Obrolan:
+Tindakan ini akan menghapus seluruh obrolan dari daftar Anda.
+JavaScript
+await sock.chatModify({ delete: true }, jid);
+
+26
+
+
+8.2. Mengelola Pengaturan Privasi dan Daftar Blokir
+
+
+Baileys juga memberikan kontrol terprogram atas pengaturan privasi akun dan daftar blokir.
+                        * Memblokir dan Membuka Blokir Pengguna:
+Fungsi sock.updateBlockStatus digunakan untuk mengelola daftar blokir.
+JavaScript
+const userJid = "..._@s.whatsapp.net_";
+
+// Memblokir pengguna
+await sock.updateBlockStatus(userJid, "block");
+
+// Membuka blokir pengguna
+await sock.updateBlockStatus(userJid, "unblock");
+
+2
+                        * Mengambil dan Memperbarui Pengaturan Privasi:
+Pengaturan privasi seperti siapa yang dapat melihat "terakhir dilihat", foto profil, dan status dapat dikelola.
+JavaScript
+// Mengambil semua pengaturan privasi saat ini
+const privacySettings = await sock.fetchPrivacySettings();
+console.log(privacySettings);
+
+// Memperbarui privasi 'terakhir dilihat' menjadi 'hanya kontak'
+await sock.updateLastSeenPrivacy('contacts');
+
+// Memperbarui privasi foto profil menjadi 'tidak ada'
+await sock.updateProfilePicturePrivacy('none');
+
+// Pilihan yang tersedia untuk sebagian besar pengaturan: 'all', 'contacts', 'contact_blacklist', 'none'
+
+26
+
+
+8.3. Menangani Daftar Siaran dan Pembaruan Status
+
+
+Interaksi dengan daftar siaran (broadcast lists) dan pembaruan status (status updates) juga dimungkinkan, meskipun dokumentasinya lebih terbatas dibandingkan dengan obrolan pribadi atau grup. Kuncinya adalah menggunakan format JID yang benar.
+                           * Format JID:
+                           * Daftar Siaran: [timestamp_pembuatan]@broadcast
+                           * Pembaruan Status: status@broadcast
+
+1
+                              * Mengirim Pembaruan Status:
+Untuk memposting pembaruan status (misalnya, status teks), cukup kirim pesan ke JID status@broadcast.
+JavaScript
+await sock.sendMessage('status@broadcast', { text: 'Ini adalah pembaruan status otomatis!' });
+
+                              * Mengirim ke Daftar Siaran:
+Jika Anda sudah memiliki JID dari daftar siaran yang ada, Anda dapat mengirim pesan ke JID tersebut, dan WhatsApp akan mendistribusikannya ke semua penerima dalam daftar itu.
+JavaScript
+const broadcastJid = "1234567890@broadcast"; // Ganti dengan JID daftar siaran yang valid
+await sock.sendMessage(broadcastJid, { text: 'Pesan siaran penting.' });
+
+Perlu dicatat bahwa contoh-contoh yang ditemukan, seperti di 3 dan 3, seringkali menunjukkan "siaran massal" dengan melakukan iterasi melalui daftar kontak dan mengirim pesan satu per satu. Ini secara teknis bukan menggunakan fitur daftar siaran asli WhatsApp, melainkan mensimulasikannya. Dokumentasi yang ada tampaknya tidak menyediakan fungsi untuk membuat atau mengelola daftar siaran secara terprogram, hanya untuk mengirim ke yang sudah ada.
+
+
+Bagian 9: Migrasi dan Praktik Terbaik
+
+
+
+
+9.1. Panduan Migrasi ke Baileys v7.x.x
+
+
+Versi 7.x.x dari Baileys memperkenalkan beberapa perubahan signifikan yang merusak (breaking changes) yang memerlukan modifikasi kode yang ada. Perubahan ini bukan sekadar pembaruan teknis, melainkan pergeseran paradigma yang bertujuan untuk modernisasi, peningkatan privasi, dan penyelarasan dengan ekosistem JavaScript modern.
+                                 * Pergeseran dari PN (Phone Number) ke LID (Local Identifier):
+Perubahan paling mendasar adalah adopsi LID sebagai pengidentifikasi utama pengguna, terutama dalam konteks grup. LID adalah pengidentifikasi anonim yang unik untuk setiap pengguna, yang menyembunyikan nomor telepon asli mereka untuk meningkatkan privasi.39
+                                    * Implikasi: Pengembang harus berhenti mengandalkan JID berbasis nomor telepon (..._@s.whatsapp.net_) sebagai pengidentifikasi unik yang stabil. Logika aplikasi, skema database, dan setiap bagian dari kode yang menyimpan atau memanipulasi JID pengguna harus dimigrasikan untuk menangani LID. Upaya untuk secara paksa mengonversi LID kembali ke nomor telepon (PN) tidak dianjurkan dan dianggap tidak andal.
+                                    * Perubahan Teknis:
+                                    * Objek MessageKey dan GroupMetadata sekarang menyertakan bidang alternatif untuk menyimpan PN jika pengidentifikasi utamanya adalah LID (misalnya, participant dan participantAlt).39
+                                    * Fungsi isJidUser telah diganti dengan isPnUser.39
+                                    * Status autentikasi sekarang harus mendukung lid-mapping untuk menyimpan pemetaan antara LID dan PN.39
+                                    * Transisi ke Modul ESM (ECMAScript Modules):
+Baileys telah beralih dari sistem modul CommonJS (require) ke sistem modul ESM (import). Perubahan ini sejalan dengan standar modern JavaScript dan memecahkan beberapa masalah yang terkait dengan toolchain dan bundling.39
+                                       * Implikasi: Proyek yang ada yang menggunakan require('baileys') akan rusak.
+                                       * Solusi Migrasi:
+                                       1. (Direkomendasikan) Konversi Proyek ke ESM: Ubah package.json Anda dengan menambahkan "type": "module" dan ganti semua pernyataan require dengan import.
+                                       2. (Alternatif) Impor Dinamis: Gunakan await import('@whiskeysockets/baileys') di dalam fungsi asinkron dalam basis kode CommonJS Anda. Metode ini memungkinkan penggunaan bertahap tetapi tidak direkomendasikan untuk jangka panjang.39
+                                       * Perubahan pada Paket Protobuf:
+Untuk mengurangi ukuran paket, beberapa metode utilitas dari objek Protobuf telah dihapus.
+                                          * Implikasi: Kode yang menggunakan .fromObject() untuk membuat instance Protobuf akan gagal.
+                                          * Solusi Migrasi: Ganti panggilan .fromObject() dengan .create(). Selain itu, untuk serialisasi dan deserialisasi objek Protobuf ke/dari JSON, sekarang wajib menggunakan utilitas BufferJSON yang disediakan oleh Baileys untuk memastikan kompatibilitas.39
+Migrasi ini harus dilihat bukan sebagai beban, tetapi sebagai langkah strategis. Ini memastikan bahwa aplikasi Anda tetap aman, selaras dengan fokus privasi WhatsApp, dan dapat dipelihara menggunakan praktik pengembangan JavaScript modern.
+
+
+9.2. Praktik Terbaik: Kinerja, Keamanan, dan Kepatuhan
+
+
+Membangun aplikasi yang andal dan berkelanjutan dengan Baileys memerlukan lebih dari sekadar kode yang berfungsi. Praktik-praktik berikut sangat penting.
+                                          * Kinerja:
+                                          * Cache Metadata Grup: Selalu implementasikan mekanisme cache untuk cachedGroupMetadata untuk menghindari pembatasan laju dan pemblokiran saat berinteraksi dengan grup.1
+                                          * Penyimpanan Pesan yang Efisien: Gunakan database yang cepat dan efisien (misalnya, Redis, atau database SQL dengan pengindeksan yang tepat) untuk implementasi fungsi getMessage. Ini sangat penting untuk kinerja saat mendekripsi jajak pendapat atau mencoba ulang pengiriman pesan.
+                                          * Manajemen Memori: Hindari menyimpan seluruh riwayat obrolan atau data besar lainnya di dalam memori aplikasi. Manfaatkan database eksternal untuk semua penyimpanan data yang persisten.27
+                                          * Keamanan:
+                                          * Amankan File Sesi: File atau data autentikasi sangat sensitif. Pastikan file-file ini disimpan di lokasi yang aman dengan izin akses yang terbatas dan tidak pernah dimasukkan ke dalam sistem kontrol versi seperti Git.
+                                          * Validasi Input: Selalu validasi dan sanitasi semua input yang berasal dari pesan WhatsApp sebelum memprosesnya untuk mencegah kerentanan seperti injeksi perintah atau serangan lainnya.
+                                          * Kepatuhan dan Etika:
+                                          * Dapatkan Izin (Opt-In): Jangan pernah mengirim pesan kepada pengguna yang belum secara eksplisit memberikan persetujuan untuk dihubungi.
+                                          * Sediakan Opsi Keluar (Opt-Out): Sediakan cara yang mudah bagi pengguna untuk berhenti menerima pesan (misalnya, dengan membalas "STOP").
+                                          * Identifikasi Diri: Jelaskan dengan jelas siapa Anda atau entitas apa yang diwakili oleh bot Anda dalam pesan awal.
+                                          * Hindari Perilaku Seperti Spam: Jangan mengirim pesan yang sama persis berulang kali dalam waktu singkat. Variasikan konten pesan dan tambahkan penundaan acak di antara pengiriman untuk meniru perilaku manusia dan menghindari pemicuan filter anti-spam WhatsApp.3
+
+
+9.3. Peringatan Hukum dan Etika Penggunaan
+
+
+Sebagai penutup, penting untuk menegaskan kembali bahwa Baileys adalah proyek rekayasa terbalik dan tidak resmi. Penggunaannya secara inheren melanggar Ketentuan Layanan WhatsApp, yang dapat mengakibatkan pemblokiran permanen nomor telepon yang terkait. Risiko ini harus dipertimbangkan dengan cermat, terutama untuk aplikasi bisnis yang kritis.
+Pengembang memikul tanggung jawab penuh untuk menggunakan alat ini secara etis. Pustaka ini tidak boleh digunakan untuk spam, pengawasan, atau aktivitas apa pun yang melanggar privasi atau persetujuan pengguna. Dengan mematuhi praktik terbaik dan menggunakan pustaka ini secara bertanggung jawab, pengembang dapat memanfaatkan kekuatannya sambil meminimalkan risiko.
+Karya yang dikutip
+                                          1. whiskeysockets/baileys - NPM, diakses Oktober 26, 2025, https://www.npmjs.com/package/@whiskeysockets/baileys
+                                          2. @adiwajshing/baileys-md, diakses Oktober 26, 2025, https://pokoke-01.github.io/owh/index.html
+                                          3. Automating WhatsApp with Node.js and Baileys: Send, Receive, and Broadcast Messages with Code | by Elvis Gonçalves | Medium, diakses Oktober 26, 2025, https://medium.com/@elvisbrazil/automating-whatsapp-with-node-js-and-baileys-send-receive-and-broadcast-messages-with-code-0656c40bd928
+                                          4. WhiskeySockets/Baileys: Socket-based TS/JavaScript API for WhatsApp Web - GitHub, diakses Oktober 26, 2025, https://github.com/WhiskeySockets/Baileys
+                                          5. whatsapp-api-nodejs - Postman, diakses Oktober 26, 2025, https://documenter.getpostman.com/view/12514774/UVsPQkBq
+                                          6. nizarfadlan/baileys-api: Simple WhatsApp REST API with multiple device support - GitHub, diakses Oktober 26, 2025, https://github.com/nizarfadlan/baileys-api
+                                          7. Baileys - Typescript/Javascript WhatsApp Web API - CodeSandbox, diakses Oktober 26, 2025, http://codesandbox.io/p/github/ayeshchamodye/Baileys
+                                          8. How I Built a WhatsApp Bot using Node.js | by Razan - Medium, diakses Oktober 26, 2025, https://medium.com/@zaidyoutub0/building-whatsapp-bots-with-baileys-a-lazy-developers-guide-to-doing-it-right-c65971290bc3
+                                          9. fizzxydev/baileys-pro - NPM, diakses Oktober 26, 2025, https://www.npmjs.com/package/@fizzxydev/baileys-pro
+                                          10. Configuration - baileys.wiki, diakses Oktober 26, 2025, https://baileys.wiki/docs/socket/configuration/
+                                          11. Configuration | Baileys, diakses Oktober 26, 2025, https://baileys.wiki/docs/socket/configuration
+                                          12. @natyapp/baileys - npm, diakses Oktober 26, 2025, https://www.npmjs.com/package/%40natyapp%2Fbaileys
+                                          13. adiwajshing/baileys - NPM, diakses Oktober 26, 2025, https://www.npmjs.com/package/@adiwajshing/baileys
+                                          14. Itsukichann/Baileys: WhatsApp API Modification By Itsukiichan - GitHub, diakses Oktober 26, 2025, https://github.com/Itsukichann/Baileys
+                                          15. Connecting | Baileys, diakses Oktober 26, 2025, https://baileys.wiki/docs/socket/connecting/
+                                          16. Baileys API v0.2 - Postman, diakses Oktober 26, 2025, https://documenter.getpostman.com/view/18988925/UVeNni36
+                                          17. bobslavtriev/mysql-baileys: Authentication with MySQL for Baileys - GitHub, diakses Oktober 26, 2025, https://github.com/bobslavtriev/mysql-baileys
+                                          18. Receiving Updates | Baileys, diakses Oktober 26, 2025, https://baileys.wiki/docs/socket/receiving-updates
+                                          19. @adiwajshing/baileys-md, diakses Oktober 26, 2025, https://pokoke-01.github.io/owh/modules.html
+                                          20. Handling Messages | Baileys, diakses Oktober 26, 2025, https://baileys.wiki/docs/socket/handling-messages
+                                          21. Handling Messages - baileys.wiki, diakses Oktober 26, 2025, https://baileys.wiki/docs/socket/handling-messages/
+                                          22. Interface: IWebMessageInfo - baileys.wiki, diakses Oktober 26, 2025, https://baileys.wiki/docs/api/namespaces/proto/interfaces/IWebMessageInfo/
+                                          23. Class WebMessageInfo - adiwajshing/baileys-md, diakses Oktober 26, 2025, https://pokoke-01.github.io/owh/classes/proto.webmessageinfo-1.html
+                                          24. easy-baileys - Yarn Classic, diakses Oktober 26, 2025, https://classic.yarnpkg.com/en/package/easy-baileys
+                                          25. FuadXyro/Baileys - GitHub, diakses Oktober 26, 2025, https://github.com/FuadXyro/Baileys
+                                          26. kbiits/Whiskey-Baileys: Lightweight full-featured typescript/javascript WhatsApp Web API - GitHub, diakses Oktober 26, 2025, https://github.com/kbiits/Whiskey-Baileys
+                                          27. SilvaTechB/Baileys - GitHub, diakses Oktober 26, 2025, https://github.com/SilvaTechB/Baileys
+                                          28. reinaldocoelho/Baileys-whatsapp-api: Lightweight full-featured WhatsApp Web + Multi-Device API - GitHub, diakses Oktober 26, 2025, https://github.com/reinaldocoelho/Baileys-whatsapp-api
+                                          29. Alien-Alfa/baileys - GitHub, diakses Oktober 26, 2025, https://github.com/Alien-Alfa/baileys
+                                          30. baileys-pro - NPM, diakses Oktober 26, 2025, https://www.npmjs.com/package/baileys-pro?activeTab=readme
+                                          31. baileys-pro CDN by jsDelivr - A CDN for npm and GitHub, diakses Oktober 26, 2025, https://www.jsdelivr.com/package/npm/baileys-pro
+                                          32. @zassxd/baileys - npm, diakses Oktober 26, 2025, https://www.npmjs.com/package/@zassxd/baileys
+                                          33. Vkazee/Baileys - GitHub, diakses Oktober 26, 2025, https://github.com/Vkazee/Baileys
+                                          34. ryuu-reinzz/baileys - NPM, diakses Oktober 26, 2025, https://www.npmjs.com/package/@ryuu-reinzz/baileys
+                                          35. stvnnvs/baileys - NPM, diakses Oktober 26, 2025, https://www.npmjs.com/package/@stvnnvs/baileys
+                                          36. yanzbotz/baileys - npm Package Security Analysis - Socket.dev, diakses Oktober 26, 2025, https://socket.dev/npm/package/@yanzbotz/baileys
+                                          37. [BUG] group-participants.update emits corrupted participants as "[object Object]" instead of parsed participant objects in v7.x · Issue #1911 · WhiskeySockets/Baileys - GitHub, diakses Oktober 26, 2025, https://github.com/WhiskeySockets/Baileys/issues/1911
+                                          38. Privacy | Baileys, diakses Oktober 26, 2025, https://baileys.wiki/docs/socket/privacy
+                                          39. Migrate to v7.x.x | Baileys, diakses Oktober 26, 2025, https://baileys.wiki/docs/migration/to-v7.0.0

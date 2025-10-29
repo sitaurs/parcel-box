@@ -1,0 +1,90 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Production
+/build
+/dist
+dist-ssr
+
+# Database
+*.sqlite
+*.sqlite-journal
+*.db
+db.sqlite*
+
+# Storage
+storage/
+wa-session/
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+
+# PlatformIO
+.pio/
+.platformio/
+firmware/.pio/
+firmware/.vscode/
+
+# Backup files
+*.bak
+*.backup
+backups/
+
+# Docker
+.dockerignore
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# PM2
+.pm2/
+
+# Certificates
+*.pem
+*.key
+*.crt
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Build info
+.tsbuildinfo
