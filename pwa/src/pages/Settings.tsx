@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, Moon, Sun, Smartphone, Check, Lock } from 'lucide-react';
+import { ChevronRight, Moon, Sun, Smartphone, Check, Lock, Key } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Snackbar } from '../components/Snackbar';
 import PINSetup from '../components/PINSetup';
+import { ChangePasswordModal } from '../components/ChangePasswordModal';
 
 interface SettingsData {
   appearance: {
@@ -12,7 +14,9 @@ interface SettingsData {
 
 export function Settings() {
   const { theme, setTheme } = useTheme();
+  const { updatePin } = useAuth();
   const [showPINSetup, setShowPINSetup] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [settings, setSettings] = useState<SettingsData>({
     appearance: { theme: theme as 'light' | 'dark' | 'auto' }
   });
@@ -96,6 +100,27 @@ export function Settings() {
       </div>
 
       <div className="p-4 space-y-3">
+        {/* Change Password Card */}
+        <button
+          onClick={() => setShowChangePassword(true)}
+          className="w-full p-4 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all text-white"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                <Key className="w-6 h-6" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold">Change Password</p>
+                <p className="text-sm text-white/80">
+                  Update your account password
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5" />
+          </div>
+        </button>
+
         {/* PIN Security Card - Only show on mobile */}
         {isMobile && (
           <button
@@ -195,6 +220,16 @@ export function Settings() {
           }}
           onSkip={() => {
             setShowPINSetup(false);
+          }}
+        />
+      )}
+
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <ChangePasswordModal
+          onClose={() => setShowChangePassword(false)}
+          onSuccess={() => {
+            setSnackbar({ message: 'Password berhasil diubah!', type: 'success' });
           }}
         />
       )}

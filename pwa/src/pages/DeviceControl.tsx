@@ -493,20 +493,26 @@ export function DeviceControl() {
               </div>
             </div>
 
-            {/* Pipeline Control */}
+            {/* Stop Buzzer Control */}
             <div className="backdrop-blur-md bg-white/10 dark:bg-gray-800/30 rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20 dark:border-gray-700/30">
               <h3 className="text-xl font-extrabold text-white mb-6 flex items-center">
                 <div className="w-10 h-10 rounded-xl bg-red-500/30 flex items-center justify-center mr-3">
-                  <Activity className="w-6 h-6 text-red-200" />
+                  <Volume2 className="w-6 h-6 text-red-200" />
                 </div>
-                Pipeline Control
+                Stop Buzzer
               </h3>
+              <p className="text-white/70 text-sm mb-4">
+                Stop buzzer yang sedang aktif/berbunyi
+              </p>
               <button
-                onClick={() => sendControl({ pipeline: { stop: true } })}
+                onClick={() => sendControl({ buzzer: { stop: true } })}
                 disabled={!isOnline || loading}
-                className="w-full py-3 px-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-xl font-semibold hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50 transition-all"
+                className="w-full py-4 px-4 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold rounded-2xl shadow-lg disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
               >
-                Emergency Stop Pipeline
+                <div className="flex items-center justify-center space-x-2">
+                  <Square className="w-5 h-5" />
+                  <span>Stop Buzzer Now</span>
+                </div>
               </button>
             </div>
           </div>

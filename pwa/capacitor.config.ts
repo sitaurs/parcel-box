@@ -5,8 +5,9 @@ const config: CapacitorConfig = {
   appName: 'Smart Parcel',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
-    cleartext: true, // Allow HTTP connections for development
+    androidScheme: 'http', // Changed to http to fix mixed content error
+    cleartext: true, // Allow HTTP connections
+    hostname: 'localhost',
   },
   plugins: {
     SplashScreen: {

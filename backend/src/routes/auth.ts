@@ -172,4 +172,63 @@ router.put('/pin', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+/**
+ * POST /api/v1/auth/change-password
+ * Change user password
+ */
+router.post('/change-password', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      res.status(401).json({ error: 'No token provided' });
+      return;
+    }
+
+    const decoded = jwt.verify(token, config.jwt.secret) as any;
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      res.status(400).json({ error: 'Old password and new password are required' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ error: 'New password must be at least 6 characters' });
+      return;
+    }
+
+    // Get user
+    const user = await db.getUserById(decoded.userId);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    // Verify old password
+    const validPassword = await bcrypt.compare(oldPassword, user.password);
+    if (!validPassword) {
+      res.status(401).json({ error: 'Old password is incorrect' });
+      return;
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password
+    const updatedUser = await db.updateUserPassword(decoded.userId, hashedPassword);
+
+    if (!updatedUser) {
+      res.status(500).json({ error: 'Failed to update password' });
+      return;
+    }
+
+    console.log('✅ Password changed for user:', user.username);
+    res.json({ message: 'Password changed successfully' });
+  } catch (error: any) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
 export default router;

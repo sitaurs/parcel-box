@@ -77,21 +77,22 @@ export function Dashboard() {
   async function loadData() {
     try {
       setLoading(true);
-      const [devicesData, packagesData] = await Promise.all([
+      const [devicesData, packagesData, allPackagesCount] = await Promise.all([
         api.getDevices(),
-        api.getPackages({ limit: 10 })
+        api.getPackages({ limit: 10 }), // Latest 10 for display
+        api.getPackages({}) // All packages for stats count
       ]);
 
       setDevices(devicesData);
       
       const today = new Date().toDateString();
-      const todayPkgs = packagesData.filter(p => new Date(p.tsDetected).toDateString() === today);
+      const todayPkgs = allPackagesCount.filter(p => new Date(p.tsDetected).toDateString() === today);
       
       setStats({
-        totalPackages: packagesData.length,
+        totalPackages: allPackagesCount.length, // Count ALL packages
         todayPackages: todayPkgs.length,
-        capturedPackages: packagesData.filter(p => p.status === 'captured').length,
-        deliveredPackages: packagesData.filter(p => p.status === 'delivered').length,
+        capturedPackages: allPackagesCount.filter(p => p.status === 'captured').length,
+        deliveredPackages: allPackagesCount.filter(p => p.status === 'delivered').length,
       });
 
       if (packagesData.length > 0) {

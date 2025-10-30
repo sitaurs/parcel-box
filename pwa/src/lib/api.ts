@@ -6,7 +6,7 @@ const isNative = Capacitor.isNativePlatform();
 // Production server URL (will be set at build time)
 // For native: Use VITE_PROD_API_URL from .env.production
 // For web: Use proxy or VITE_API_BASE_URL
-const API_BASE_URL = isNative 
+export const API_BASE_URL = isNative 
   ? (import.meta.env.VITE_PROD_API_URL || 'http://13.213.57.228:8080/api/v1')
   : (import.meta.env.VITE_API_BASE_URL || '/api/v1');
 

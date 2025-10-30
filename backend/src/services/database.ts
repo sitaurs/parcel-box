@@ -160,6 +160,10 @@ class JsonDatabase {
     return this.updateUser(id, { pin });
   }
 
+  async updateUserPassword(id: string, password: string): Promise<User | null> {
+    return this.updateUser(id, { password });
+  }
+
   // Packages
   async getPackages(): Promise<Package[]> {
     const data = await this.readFile<{ packages: Package[] }>('packages.json');

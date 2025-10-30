@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { API_BASE_URL } from '../lib/api';
 
 interface User {
   id: string;
@@ -9,12 +10,14 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<boolean>;
+  loginWithPin: (pin: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
   needsPinSetup: boolean;
   needsPinUnlock: boolean;
   setupPin: (pin: string) => void;
+  updatePin: (oldPin: string, newPin: string) => boolean;
   unlockWithPin: (pin: string) => boolean;
   clearPinRequirement: () => void;
 }
@@ -80,19 +83,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Check if user needs PIN unlock (mobile only)
       if (isMobile && userPin) {
-        const lastActivityTime = lastActivity ? parseInt(lastActivity) : 0;
-        const timeSinceLastActivity = Date.now() - lastActivityTime;
-        const thirtyMinutes = 30 * 60 * 1000;
+        try {
+          const pinData = JSON.parse(userPin);
+          // Verify PIN belongs to this user
+          if (pinData.userId !== userData.id) {
+            console.log('⚠️ PIN mismatch with user, clearing PIN');
+            localStorage.removeItem('userPin');
+          } else {
+            const lastActivityTime = lastActivity ? parseInt(lastActivity) : 0;
+            const timeSinceLastActivity = Date.now() - lastActivityTime;
+            const thirtyMinutes = 30 * 60 * 1000;
 
-        console.log('📱 Mobile + PIN - Time since activity:', Math.floor(timeSinceLastActivity / 1000 / 60), 'minutes');
+            console.log('📱 Mobile + PIN - Time since activity:', Math.floor(timeSinceLastActivity / 1000 / 60), 'minutes');
 
-        // Require PIN if app was inactive for more than 30 minutes
-        if (timeSinceLastActivity > thirtyMinutes) {
-          console.log('🔒 Requiring PIN unlock (inactive > 30 min)');
-          setNeedsPinUnlock(true);
-          setUser(userData); // Set user but keep locked
-          setIsLoading(false);
-          return;
+            // Require PIN if app was inactive for more than 30 minutes
+            if (timeSinceLastActivity > thirtyMinutes) {
+              console.log('🔒 Requiring PIN unlock (inactive > 30 min)');
+              setNeedsPinUnlock(true);
+              setUser(userData); // Set user but keep locked
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing PIN data:', e);
+          localStorage.removeItem('userPin');
         }
       }
 
@@ -116,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/v1/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -136,11 +151,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Check if mobile needs PIN setup (only after first login)
         const isMobile = isMobileDevice();
-        const userPin = localStorage.getItem('userPin');
-        if (isMobile && !userPin) {
+        const savedPinData = localStorage.getItem('userPin');
+        
+        if (isMobile && !savedPinData) {
           // Trigger PIN setup flow for first-time mobile users
           console.log('📌 PIN setup required for mobile device');
           setNeedsPinSetup(true);
+        } else if (isMobile && savedPinData) {
+          // Validate existing PIN belongs to this user
+          try {
+            const pinData = JSON.parse(savedPinData);
+            if (pinData.userId !== userData.id) {
+              console.log('⚠️ PIN mismatch, require new PIN setup');
+              setNeedsPinSetup(true);
+            }
+          } catch (e) {
+            console.error('Error validating PIN:', e);
+            setNeedsPinSetup(true);
+          }
         }
 
         return true;
@@ -153,18 +181,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const setupPin = (pin: string) => {
-    // Simpan PIN (6 digit)
-    localStorage.setItem('userPin', pin);
-    setNeedsPinSetup(false);
-    updateLastActivity();
+    // Simpan PIN (4-6 digit) - PERMANENT
+    if (user) {
+      const pinData = {
+        pin: pin,
+        userId: user.id,
+        createdAt: Date.now()
+      };
+      localStorage.setItem('userPin', JSON.stringify(pinData));
+      setNeedsPinSetup(false);
+      updateLastActivity();
+      console.log('✅ PIN saved for user:', user.username);
+    }
+  };
+
+  const updatePin = (oldPin: string, newPin: string): boolean => {
+    const savedPinData = localStorage.getItem('userPin');
+    if (!savedPinData || !user) return false;
+
+    try {
+      const pinData = JSON.parse(savedPinData);
+      if (pinData.pin === oldPin && pinData.userId === user.id) {
+        const newPinData = {
+          pin: newPin,
+          userId: user.id,
+          createdAt: Date.now()
+        };
+        localStorage.setItem('userPin', JSON.stringify(newPinData));
+        console.log('✅ PIN updated for user:', user.username);
+        return true;
+      }
+    } catch (e) {
+      console.error('Error updating PIN:', e);
+    }
+    return false;
+  };
+
+  const loginWithPin = async (pin: string): Promise<boolean> => {
+    const savedPinData = localStorage.getItem('userPin');
+    const savedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+
+    if (!savedPinData || !savedUser || !token) return false;
+
+    try {
+      const pinData = JSON.parse(savedPinData);
+      const userData = JSON.parse(savedUser);
+
+      if (pinData.pin === pin && pinData.userId === userData.id) {
+        // Validate token still valid
+        const tokenData = JSON.parse(atob(token.split('.')[1]));
+        const isExpired = tokenData.exp * 1000 < Date.now();
+        
+        if (isExpired) {
+          console.log('⏰ Token expired, cannot login with PIN');
+          return false;
+        }
+
+        setUser(userData);
+        updateLastActivity();
+        console.log('✅ Logged in with PIN:', userData.username);
+        return true;
+      }
+    } catch (e) {
+      console.error('Error logging in with PIN:', e);
+    }
+    return false;
   };
 
   const unlockWithPin = (pin: string): boolean => {
-    const savedPin = localStorage.getItem('userPin');
-    if (savedPin === pin) {
-      setNeedsPinUnlock(false);
-      updateLastActivity();
-      return true;
+    const savedPinData = localStorage.getItem('userPin');
+    if (!savedPinData || !user) return false;
+
+    try {
+      const pinData = JSON.parse(savedPinData);
+      if (pinData.pin === pin && pinData.userId === user.id) {
+        setNeedsPinUnlock(false);
+        updateLastActivity();
+        return true;
+      }
+    } catch (e) {
+      console.error('Error unlocking with PIN:', e);
     }
     return false;
   };
@@ -208,12 +305,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         login,
+        loginWithPin,
         logout,
         isAuthenticated: !!user,
         isLoading,
         needsPinSetup,
         needsPinUnlock,
         setupPin,
+        updatePin,
         unlockWithPin,
         clearPinRequirement,
       }}
