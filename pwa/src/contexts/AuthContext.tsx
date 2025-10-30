@@ -239,9 +239,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setNeedsPinSetup(false);
         updateLastActivity();
         console.log('✅ PIN saved locally for user:', user.username, pinData);
-      } catch (error) {
+      } catch (error: any) {
         console.error('❌ Error saving PIN:', error);
-        alert('Failed to save PIN: ' + error.message);
+        alert('Failed to save PIN: ' + (error.message || 'Unknown error'));
       }
     } else {
       console.error('❌ Cannot setup PIN: No user logged in!');
