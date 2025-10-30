@@ -109,7 +109,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Check inactivity (30 minutes)
           const lastActivityTime = lastActivity ? parseInt(lastActivity) : 0;
           const timeSinceLastActivity = Date.now() - lastActivityTime;
-          const thirtyMinutes = 30 * 60 * 1000;
 
           console.log('📱 Mobile + PIN - Time since activity:', Math.floor(timeSinceLastActivity / 1000 / 60), 'minutes');
 
@@ -318,17 +317,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const unlockWithPin = (pin: string): boolean => {
     const savedPinData = localStorage.getItem('userPin');
-    if (!savedPinData || !user) return false;
+    const savedUser = localStorage.getItem('user');
+    
+    console.log('🔓 Unlock attempt - Has PIN data:', !!savedPinData, 'Has user:', !!savedUser);
+    
+    if (!savedPinData || !savedUser) {
+      console.error('❌ Missing PIN data or user data');
+      return false;
+    }
 
     try {
       const pinData = JSON.parse(savedPinData);
-      if (pinData.pin === pin && pinData.userId === user.id) {
+      const userData = JSON.parse(savedUser);
+      
+      console.log('🔑 Checking PIN:', { 
+        inputPin: pin, 
+        savedPin: pinData.pin, 
+        match: pinData.pin === pin,
+        userId: pinData.userId,
+        userIdMatch: pinData.userId === userData.id
+      });
+      
+      if (pinData.pin === pin && pinData.userId === userData.id) {
+        console.log('✅ PIN correct! Unlocking...');
+        setUser(userData); // Set user data
         setNeedsPinUnlock(false);
         updateLastActivity();
         return true;
+      } else {
+        console.error('❌ PIN mismatch or user ID mismatch');
       }
     } catch (e) {
-      console.error('Error unlocking with PIN:', e);
+      console.error('❌ Error unlocking with PIN:', e);
     }
     return false;
   };
