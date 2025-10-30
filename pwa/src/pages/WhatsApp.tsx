@@ -18,7 +18,6 @@ export function WhatsApp() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState<string>('');
-  const [showPairingInput, setShowPairingInput] = useState(false);
   const [status, setStatus] = useState<{
     connected: boolean;
     me?: string;
@@ -284,9 +283,17 @@ export function WhatsApp() {
     };
   }, []);
 
-  // Auto-scroll logs
+  // Auto-scroll logs only if user is near bottom
   useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const logsContainer = logsEndRef.current?.parentElement;
+    if (!logsContainer) return;
+
+    const isNearBottom = logsContainer.scrollHeight - logsContainer.scrollTop - logsContainer.clientHeight < 100;
+    
+    // Only auto-scroll if user is already near the bottom (within 100px)
+    if (isNearBottom) {
+      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [logs]);
 
   async function handleStart() {
@@ -307,8 +314,8 @@ export function WhatsApp() {
       return;
     }
     
-    // Show pairing input dialog only if not connected
-    setShowPairingInput(true);
+    // No longer need to show popup - phone input is always visible on page
+    addLog('💡 Enter your phone number above to get pairing code', 'info');
   }
 
   async function handleRequestPairingCode() {
@@ -327,12 +334,11 @@ export function WhatsApp() {
     setLoading(true);
     setPairingCode(null);
     setQrCode(null);
-    setShowPairingInput(false);
     
     try {
       // Start with phone number - backend will auto-generate pairing code
       await waApi.startWhatsApp(cleanPhone);
-      addLog('✅ Start request sent with phone number', 'success');
+      addLog(`✅ Requesting pairing code for ${cleanPhone}...`, 'success');
     } catch (error: any) {
       addLog(`❌ Error: ${error.message}`, 'error');
       setLoading(false);
@@ -470,46 +476,57 @@ export function WhatsApp() {
                 </div>
               )}
 
-              {/* Pairing Input Modal */}
-              {showPairingInput && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full">
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                      📱 Link with Phone Number
-                    </h3>
-                    
-                    {/* Pairing Code Input */}
-                    <div className="space-y-4 mb-6">
-                      <input
-                        type="tel"
-                        placeholder="628123456789"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-green-500 dark:bg-gray-700 dark:text-white"
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Enter your WhatsApp number (with country code, no + sign)
-                      </p>
-                      <button
-                        onClick={handleRequestPairingCode}
-                        disabled={loading || !phoneNumber.trim()}
-                        className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {loading ? 'Generating...' : 'Get Pairing Code'}
-                      </button>
+              {/* Phone Number Input - Untuk Pairing Code */}
+              {!status.connected && (
+                <div className="mb-6 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl border-2 border-blue-200 dark:border-gray-600">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center">
+                      <span className="text-2xl">📱</span>
                     </div>
-
-                    {/* Cancel Button */}
-                    <button
-                      onClick={() => setShowPairingInput(false)}
-                      disabled={loading}
-                      className="w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
+                    <div>
+                      <h3 className="font-bold text-gray-900 dark:text-white">Link with Phone Number</h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Get pairing code for your WhatsApp</p>
+                    </div>
                   </div>
+                  
+                  <input
+                    type="tel"
+                    placeholder="628123456789 (country code + number, no +)"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="w-full px-4 py-3 mb-3 border-2 border-blue-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-center font-mono text-lg"
+                    disabled={loading || status.connected}
+                  />
+                  
+                  <button
+                    onClick={handleRequestPairingCode}
+                    disabled={loading || !phoneNumber.trim() || phoneNumber.length < 10 || status.connected}
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader className="w-5 h-5 animate-spin" />
+                        <span>Generating Code...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🔐</span>
+                        <span>Get Pairing Code</span>
+                      </>
+                    )}
+                  </button>
+                  
+                  {pairingCode && (
+                    <div className="mt-4 p-4 bg-green-100 dark:bg-green-900/30 border-2 border-green-500 rounded-xl text-center">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">Your Pairing Code:</p>
+                      <p className="text-3xl font-bold text-green-600 dark:text-green-400 tracking-widest font-mono">{pairingCode}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Enter this code in WhatsApp → Linked Devices</p>
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* Pairing Input Modal - REMOVED, now inline above */}
 
               <div className="flex flex-wrap gap-3">
                 <button
