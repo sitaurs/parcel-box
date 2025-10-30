@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Snackbar } from '../components/Snackbar';
 import PINSetup from '../components/PINSetup';
+import { ChangePINFlow } from '../components/ChangePINFlow';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
 
 interface SettingsData {
@@ -213,15 +214,40 @@ export function Settings() {
 
       {/* PIN Setup Modal */}
       {showPINSetup && (
-        <PINSetup
-          onComplete={(_pin) => {
-            setShowPINSetup(false);
-            setSnackbar({ message: 'PIN berhasil diubah!', type: 'success' });
-          }}
-          onSkip={() => {
-            setShowPINSetup(false);
-          }}
-        />
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+              {hasPIN ? 'Change PIN' : 'Setup PIN'}
+            </h3>
+            
+            {hasPIN ? (
+              // Change PIN flow
+              <ChangePINFlow
+                onComplete={async (oldPin, newPin) => {
+                  const success = await updatePin(oldPin, newPin);
+                  if (success) {
+                    setShowPINSetup(false);
+                    setSnackbar({ message: 'PIN berhasil diubah!', type: 'success' });
+                  } else {
+                    setSnackbar({ message: 'PIN lama salah!', type: 'error' });
+                  }
+                }}
+                onCancel={() => setShowPINSetup(false)}
+              />
+            ) : (
+              // Setup new PIN
+              <PINSetup
+                onComplete={(_pin) => {
+                  setShowPINSetup(false);
+                  setSnackbar({ message: 'PIN berhasil dibuat!', type: 'success' });
+                }}
+                onSkip={() => {
+                  setShowPINSetup(false);
+                }}
+              />
+            )}
+          </div>
+        </div>
       )}
 
       {/* Change Password Modal */}

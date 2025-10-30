@@ -16,8 +16,8 @@ interface AuthContextType {
   isLoading: boolean;
   needsPinSetup: boolean;
   needsPinUnlock: boolean;
-  setupPin: (pin: string) => void;
-  updatePin: (oldPin: string, newPin: string) => boolean;
+  setupPin: (pin: string) => Promise<void>;
+  updatePin: (oldPin: string, newPin: string) => Promise<boolean>;
   unlockWithPin: (pin: string) => boolean;
   clearPinRequirement: () => void;
 }
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const lastActivity = localStorage.getItem('lastActivity');
       const isMobile = isMobileDevice();
 
-      console.log('🔐 Auth Init - Token exists:', !!token, 'User exists:', !!savedUser);
+      console.log('🔐 Auth Init - Mobile:', isMobile, 'Token:', !!token, 'User:', !!savedUser, 'PIN:', !!userPin);
 
       if (!token || !savedUser) {
         console.log('❌ No token or user found, staying logged out');
@@ -81,40 +81,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = JSON.parse(savedUser);
       console.log('✅ Valid token found for user:', userData.username);
 
-      // Check if user needs PIN unlock (mobile only)
-      if (isMobile && userPin) {
+      // CRITICAL: Mobile device reload behavior
+      if (isMobile) {
+        if (!userPin) {
+          // No PIN set, require PIN setup
+          console.log('📌 Mobile without PIN - require setup');
+          setUser(userData);
+          setNeedsPinSetup(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // Has PIN - ALWAYS require PIN unlock on reload
         try {
           const pinData = JSON.parse(userPin);
+          
           // Verify PIN belongs to this user
           if (pinData.userId !== userData.id) {
             console.log('⚠️ PIN mismatch with user, clearing PIN');
             localStorage.removeItem('userPin');
-          } else {
-            const lastActivityTime = lastActivity ? parseInt(lastActivity) : 0;
-            const timeSinceLastActivity = Date.now() - lastActivityTime;
-            const thirtyMinutes = 30 * 60 * 1000;
-
-            console.log('📱 Mobile + PIN - Time since activity:', Math.floor(timeSinceLastActivity / 1000 / 60), 'minutes');
-
-            // Require PIN if app was inactive for more than 30 minutes
-            if (timeSinceLastActivity > thirtyMinutes) {
-              console.log('🔒 Requiring PIN unlock (inactive > 30 min)');
-              setNeedsPinUnlock(true);
-              setUser(userData); // Set user but keep locked
-              setIsLoading(false);
-              return;
-            }
+            setUser(userData);
+            setNeedsPinSetup(true);
+            setIsLoading(false);
+            return;
           }
+
+          // Check inactivity (30 minutes)
+          const lastActivityTime = lastActivity ? parseInt(lastActivity) : 0;
+          const timeSinceLastActivity = Date.now() - lastActivityTime;
+          const thirtyMinutes = 30 * 60 * 1000;
+
+          console.log('📱 Mobile + PIN - Time since activity:', Math.floor(timeSinceLastActivity / 1000 / 60), 'minutes');
+
+          // ALWAYS require PIN on app reload (even if < 30 min)
+          // This is THE KEY FIX for "reload harus masukkan PIN"
+          console.log('🔒 Mobile reload detected - REQUIRING PIN unlock');
+          setNeedsPinUnlock(true);
+          setUser(userData); // Set user but keep locked
+          setIsLoading(false);
+          return;
         } catch (e) {
           console.error('Error parsing PIN data:', e);
           localStorage.removeItem('userPin');
+          setUser(userData);
+          setNeedsPinSetup(true);
+          setIsLoading(false);
+          return;
         }
       }
 
-      // DON'T check for PIN setup during init - only after fresh login
-      // This prevents PIN setup screen from showing on app reload
-      console.log('🚀 User authenticated, restoring session');
-
+      // Desktop: Direct login without PIN
+      console.log('�️ Desktop device - direct login without PIN');
       setUser(userData);
       updateLastActivity();
     } catch (error) {
@@ -180,41 +197,91 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const setupPin = (pin: string) => {
-    // Simpan PIN (4-6 digit) - PERMANENT
+  const setupPin = async (pin: string) => {
+    // Simpan PIN (4-6 digit) - PERMANENT, both localStorage AND backend
     if (user) {
-      const pinData = {
-        pin: pin,
-        userId: user.id,
-        createdAt: Date.now()
-      };
-      localStorage.setItem('userPin', JSON.stringify(pinData));
-      setNeedsPinSetup(false);
-      updateLastActivity();
-      console.log('✅ PIN saved for user:', user.username);
+      try {
+        const token = localStorage.getItem('token');
+        
+        // Save to backend FIRST (hashed securely)
+        const response = await fetch(`${API_BASE_URL}/auth/pin`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ pin })
+        });
+
+        if (!response.ok) {
+          console.error('❌ Failed to save PIN to backend');
+          throw new Error('Backend PIN save failed');
+        }
+
+        console.log('✅ PIN saved to backend');
+
+        // Then save to localStorage for quick access
+        const pinData = {
+          pin: pin,
+          userId: user.id,
+          createdAt: Date.now()
+        };
+        localStorage.setItem('userPin', JSON.stringify(pinData));
+        setNeedsPinSetup(false);
+        updateLastActivity();
+        console.log('✅ PIN saved locally for user:', user.username);
+      } catch (error) {
+        console.error('❌ Error saving PIN:', error);
+        alert('Failed to save PIN. Please try again.');
+      }
     }
   };
 
-  const updatePin = (oldPin: string, newPin: string): boolean => {
+  const updatePin = async (oldPin: string, newPin: string): Promise<boolean> => {
     const savedPinData = localStorage.getItem('userPin');
     if (!savedPinData || !user) return false;
 
     try {
       const pinData = JSON.parse(savedPinData);
-      if (pinData.pin === oldPin && pinData.userId === user.id) {
-        const newPinData = {
-          pin: newPin,
-          userId: user.id,
-          createdAt: Date.now()
-        };
-        localStorage.setItem('userPin', JSON.stringify(newPinData));
-        console.log('✅ PIN updated for user:', user.username);
-        return true;
+      
+      // Verify old PIN matches
+      if (pinData.pin !== oldPin || pinData.userId !== user.id) {
+        console.error('❌ Old PIN mismatch');
+        return false;
       }
+
+      const token = localStorage.getItem('token');
+      
+      // Update backend FIRST
+      const response = await fetch(`${API_BASE_URL}/auth/pin`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ pin: newPin })
+      });
+
+      if (!response.ok) {
+        console.error('❌ Failed to update PIN in backend');
+        return false;
+      }
+
+      console.log('✅ PIN updated in backend');
+
+      // Then update localStorage
+      const newPinData = {
+        pin: newPin,
+        userId: user.id,
+        createdAt: Date.now()
+      };
+      localStorage.setItem('userPin', JSON.stringify(newPinData));
+      console.log('✅ PIN updated locally for user:', user.username);
+      return true;
     } catch (e) {
-      console.error('Error updating PIN:', e);
+      console.error('❌ Error updating PIN:', e);
+      return false;
     }
-    return false;
   };
 
   const loginWithPin = async (pin: string): Promise<boolean> => {

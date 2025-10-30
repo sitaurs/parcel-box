@@ -32,7 +32,7 @@ export default function PINSetup({ onComplete, onSkip }: PINSetupProps) {
     setError('');
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (step === 'create') {
       if (pin.length < 4) {
         setError('PIN minimal 4 digit');
@@ -45,7 +45,8 @@ export default function PINSetup({ onComplete, onSkip }: PINSetupProps) {
         setConfirmPin('');
         return;
       }
-      onComplete(pin);
+      // Call onComplete with await if it's async
+      await onComplete(pin);
     }
   };
 
