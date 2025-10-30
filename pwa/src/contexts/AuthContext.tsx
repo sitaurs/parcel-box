@@ -202,6 +202,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const token = localStorage.getItem('token');
         
+        console.log('💾 Setup PIN - Sending to backend:', {
+          pin: pin,
+          userId: user.id,
+          apiUrl: `${API_BASE_URL}/auth/pin`,
+          hasToken: !!token
+        });
+        
         // Save to backend FIRST (hashed securely)
         const response = await fetch(`${API_BASE_URL}/auth/pin`, {
           method: 'PUT',
@@ -212,12 +219,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({ pin })
         });
 
+        const responseData = await response.json();
+        console.log('📡 Backend response:', response.status, responseData);
+
         if (!response.ok) {
-          console.error('❌ Failed to save PIN to backend');
-          throw new Error('Backend PIN save failed');
+          console.error('❌ Failed to save PIN to backend:', responseData);
+          throw new Error('Backend PIN save failed: ' + responseData.error);
         }
 
-        console.log('✅ PIN saved to backend');
+        console.log('✅ PIN saved to backend successfully!');
 
         // Then save to localStorage for quick access
         const pinData = {
@@ -228,11 +238,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('userPin', JSON.stringify(pinData));
         setNeedsPinSetup(false);
         updateLastActivity();
-        console.log('✅ PIN saved locally for user:', user.username);
+        console.log('✅ PIN saved locally for user:', user.username, pinData);
       } catch (error) {
         console.error('❌ Error saving PIN:', error);
-        alert('Failed to save PIN. Please try again.');
+        alert('Failed to save PIN: ' + error.message);
       }
+    } else {
+      console.error('❌ Cannot setup PIN: No user logged in!');
     }
   };
 
