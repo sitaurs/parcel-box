@@ -2,6 +2,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Validate critical secrets in production
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'dev_jwt_secret_change_in_production' || process.env.JWT_SECRET === 'supersecret') {
+    throw new Error('❌ SECURITY ERROR: JWT_SECRET must be set to a strong secret in production!');
+  }
+  if (!process.env.API_TOKEN || process.env.API_TOKEN === 'device_token_change_this') {
+    throw new Error('❌ SECURITY ERROR: API_TOKEN must be set in production!');
+  }
+}
+
 export const config = {
   port: parseInt(process.env.PORT || '8080', 10),
   nodeEnv: process.env.NODE_ENV || 'development',

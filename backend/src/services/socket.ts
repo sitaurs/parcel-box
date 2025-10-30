@@ -3,6 +3,10 @@ import { Server as HTTPServer } from 'http';
 import { config } from '../config';
 import { getMQTTService } from './mqtt';
 
+// Conditional logging based on environment
+const isDev = config.nodeEnv === 'development';
+const log = isDev ? console.log.bind(console) : () => {};
+
 let io: SocketIOServer | null = null;
 
 /**
@@ -114,7 +118,7 @@ export function emitPackageNew(data: {
 }): void {
   if (io) {
     io.emit('package_new', data);
-    console.log('Emitted package_new:', data.id);
+    log('Emitted package_new:', data.id);
   }
 }
 
@@ -131,7 +135,7 @@ export function emitEvent(data: {
 }): void {
   if (io) {
     io.emit('event', data);
-    console.log('Emitted event:', data.type);
+    log('Emitted event:', data.type);
   }
 }
 

@@ -20,8 +20,14 @@ async function main() {
 
   console.log('✅ Created device:', device.id);
 
-  // Create admin user with secure password
-  const adminPassword = 'Admin@2025';
+  // Hash password for security - use env variable in production
+  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@2025';
+  
+  // Warn if using default password
+  if (adminPassword === 'Admin@2025') {
+    console.log('⚠️  WARNING: Using default admin password. Set ADMIN_PASSWORD env variable in production!');
+  }
+  
   const hashedPassword = await bcrypt.hash(adminPassword, 10);
   
   const admin = await prisma.user.upsert({
@@ -42,7 +48,7 @@ async function main() {
   console.log('📝 LOGIN CREDENTIALS:');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('   Email:    admin@smartparcel.com');
-  console.log('   Password: Admin@2025');
+  console.log('   Password: ' + (process.env.ADMIN_PASSWORD ? '****** (from env)' : 'Admin@2025 (default)'));
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('');
 }

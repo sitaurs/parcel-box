@@ -77,11 +77,18 @@ export function Dashboard() {
   async function loadData() {
     try {
       setLoading(true);
-      const [devicesData, packagesData, allPackagesCount] = await Promise.all([
+      
+      // Use Promise.allSettled for better error handling
+      const results = await Promise.allSettled([
         api.getDevices(),
         api.getPackages({ limit: 10 }), // Latest 10 for display
         api.getPackages({}) // All packages for stats count
       ]);
+
+      // Extract with fallbacks
+      const devicesData = results[0].status === 'fulfilled' ? results[0].value : [];
+      const packagesData = results[1].status === 'fulfilled' ? results[1].value : [];
+      const allPackagesCount = results[2].status === 'fulfilled' ? results[2].value : [];
 
       setDevices(devicesData);
       
