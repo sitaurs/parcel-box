@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   Camera, Zap, Volume2, Lock, Play, Square, Settings as SettingsIcon,
@@ -125,8 +125,8 @@ export function DeviceControl() {
     };
   }, [deviceId]);
 
-  // Send control command
-  const sendControl = async (command: any) => {
+  // Send control command (memoized to prevent re-creation)
+  const sendControl = useCallback(async (command: any) => {
     if (!deviceId) return;
     setLoading(true);
     try {
@@ -151,10 +151,10 @@ export function DeviceControl() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [deviceId]);
 
-  // Apply settings
-  const applySettings = async () => {
+  // Apply settings (memoized)
+  const applySettings = useCallback(async () => {
     if (!deviceId) return;
     setLoading(true);
     try {
@@ -181,14 +181,19 @@ export function DeviceControl() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [deviceId, tempSettings]);
 
-  const isOnline = device?.status === 'online';
-  const inDetectionRange = sensorData && 
+  // Computed values (memoized)
+  const isOnline = useMemo(() => device?.status === 'online', [device?.status]);
+  
+  const inDetectionRange = useMemo(() => 
+    sensorData && 
     typeof sensorData.cm === 'number' && 
     !isNaN(sensorData.cm) &&
     sensorData.cm >= settings.ultra.min && 
-    sensorData.cm <= settings.ultra.max;
+    sensorData.cm <= settings.ultra.max,
+    [sensorData, settings.ultra.min, settings.ultra.max]
+  );
 
   // Show error state
   if (error) {
@@ -376,52 +381,48 @@ export function DeviceControl() {
         {activeTab === 'control' && (
           <div className="space-y-6 animate-fade-in-up">
             {/* Camera Control */}
-            <div className="backdrop-blur-md bg-white/10 dark:bg-gray-800/30 rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20 dark:border-gray-700/30">
-              <h3 className="text-xl font-extrabold text-white mb-6 flex items-center">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/30 flex items-center justify-center mr-3">
-                  <Camera className="w-6 h-6 text-indigo-200" />
-                </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                <Camera className="w-5 h-5 mr-2 text-indigo-600 dark:text-indigo-400" />
                 Camera Control
               </h3>
               <button
                 onClick={() => sendControl({ capture: true })}
                 disabled={!isOnline || loading}
-                className="w-full glass-button py-5 px-6 rounded-2xl font-bold text-white text-lg hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-indigo-600 to-purple-600 border-2 border-white/30"
+                className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95"
               >
-                <div className="flex items-center justify-center space-x-3">
-                  <Camera className="w-6 h-6" />
+                <div className="flex items-center justify-center space-x-2">
+                  <Camera className="w-5 h-5" />
                   <span>Capture Photo</span>
                 </div>
               </button>
             </div>
 
             {/* Flash Control */}
-            <div className="backdrop-blur-md bg-white/10 dark:bg-gray-800/30 rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20 dark:border-gray-700/30">
-              <h3 className="text-xl font-extrabold text-white mb-6 flex items-center">
-                <div className="w-10 h-10 rounded-xl bg-yellow-500/30 flex items-center justify-center mr-3">
-                  <Zap className="w-6 h-6 text-yellow-200" />
-                </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                <Zap className="w-5 h-5 mr-2 text-yellow-600 dark:text-yellow-400" />
                 Flash LED Control
               </h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   onClick={() => sendControl({ flash: 'on' })}
                   disabled={!isOnline || loading}
-                  className="glass-button py-4 px-4 rounded-2xl font-bold text-white hover:shadow-2xl disabled:opacity-50 transition-all bg-gradient-to-br from-yellow-500 to-orange-500 border-2 border-white/30"
+                  className="py-3 px-4 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
                 >
                   ON
                 </button>
                 <button
                   onClick={() => sendControl({ flash: 'off' })}
                   disabled={!isOnline || loading}
-                  className="glass-button py-4 px-4 rounded-2xl font-bold text-white hover:shadow-2xl disabled:opacity-50 transition-all bg-gradient-to-br from-gray-600 to-gray-700 border-2 border-white/30"
+                  className="py-3 px-4 rounded-xl bg-gradient-to-br from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
                 >
                   OFF
                 </button>
                 <button
                   onClick={() => sendControl({ flash: { pulse: true, ms: 150 } })}
                   disabled={!isOnline || loading}
-                  className="glass-button py-4 px-4 rounded-2xl font-bold text-white hover:shadow-2xl disabled:opacity-50 transition-all bg-gradient-to-br from-amber-500 to-orange-600 border-2 border-white/30"
+                  className="py-3 px-4 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
                 >
                   Pulse
                 </button>
@@ -429,18 +430,16 @@ export function DeviceControl() {
             </div>
 
             {/* Buzzer Control */}
-            <div className="backdrop-blur-md bg-white/10 dark:bg-gray-800/30 rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20 dark:border-gray-700/30">
-              <h3 className="text-xl font-extrabold text-white mb-6 flex items-center">
-                <div className="w-10 h-10 rounded-xl bg-green-500/30 flex items-center justify-center mr-3">
-                  <Volume2 className="w-6 h-6 text-green-200" />
-                </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                <Volume2 className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
                 Buzzer Control
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => sendControl({ buzzer: { start: true, ms: settings.buzzer.ms } })}
                   disabled={!isOnline || loading}
-                  className="glass-button py-5 px-6 rounded-2xl font-bold text-white hover:shadow-2xl disabled:opacity-50 transition-all bg-gradient-to-br from-green-500 to-emerald-600 border-2 border-white/30"
+                  className="py-4 px-6 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
                 >
                   <div className="flex items-center justify-center space-x-2">
                     <Play className="w-5 h-5" />
@@ -450,7 +449,7 @@ export function DeviceControl() {
                 <button
                   onClick={() => sendControl({ buzzer: { stop: true } })}
                   disabled={!isOnline || loading}
-                  className="glass-button py-5 px-6 rounded-2xl font-bold text-white hover:shadow-2xl disabled:opacity-50 transition-all bg-gradient-to-br from-red-500 to-pink-600 border-2 border-white/30"
+                  className="py-4 px-6 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
                 >
                   <div className="flex items-center justify-center space-x-2">
                     <Square className="w-5 h-5" />
@@ -461,32 +460,30 @@ export function DeviceControl() {
             </div>
 
             {/* Lock Control */}
-            <div className="backdrop-blur-md bg-white/10 dark:bg-gray-800/30 rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20 dark:border-gray-700/30">
-              <h3 className="text-xl font-extrabold text-white mb-6 flex items-center">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/30 flex items-center justify-center mr-3">
-                  <Lock className="w-6 h-6 text-blue-200" />
-                </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                <Lock className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
                 Door Lock (Solenoid) Control
               </h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   onClick={() => sendControl({ lock: { pulse: true, ms: settings.lock.ms } })}
                   disabled={!isOnline || loading}
-                  className="glass-button py-5 px-4 rounded-2xl font-bold text-white hover:shadow-2xl disabled:opacity-50 transition-all bg-gradient-to-br from-blue-500 to-cyan-600 border-2 border-white/30"
+                  className="py-4 px-4 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
                 >
                   Pulse
                 </button>
                 <button
                   onClick={() => sendControl({ lock: { open: true } })}
                   disabled={!isOnline || loading}
-                  className="glass-button py-5 px-4 rounded-2xl font-bold text-white hover:shadow-2xl disabled:opacity-50 transition-all bg-gradient-to-br from-green-500 to-teal-600 border-2 border-white/30"
+                  className="py-4 px-4 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
                 >
                   Open
                 </button>
                 <button
                   onClick={() => sendControl({ lock: { closed: true } })}
                   disabled={!isOnline || loading}
-                  className="glass-button py-5 px-4 rounded-2xl font-bold text-white hover:shadow-2xl disabled:opacity-50 transition-all bg-gradient-to-br from-red-500 to-rose-600 border-2 border-white/30"
+                  className="py-4 px-4 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
                 >
                   Lock
                 </button>
@@ -494,20 +491,18 @@ export function DeviceControl() {
             </div>
 
             {/* Stop Buzzer Control */}
-            <div className="backdrop-blur-md bg-white/10 dark:bg-gray-800/30 rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20 dark:border-gray-700/30">
-              <h3 className="text-xl font-extrabold text-white mb-6 flex items-center">
-                <div className="w-10 h-10 rounded-xl bg-red-500/30 flex items-center justify-center mr-3">
-                  <Volume2 className="w-6 h-6 text-red-200" />
-                </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                <Volume2 className="w-5 h-5 mr-2 text-red-600 dark:text-red-400" />
                 Stop Buzzer
               </h3>
-              <p className="text-white/70 text-sm mb-4">
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                 Stop buzzer yang sedang aktif/berbunyi
               </p>
               <button
                 onClick={() => sendControl({ buzzer: { stop: true } })}
                 disabled={!isOnline || loading}
-                className="w-full py-4 px-4 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold rounded-2xl shadow-lg disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
+                className="w-full py-4 px-4 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold shadow-lg disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
               >
                 <div className="flex items-center justify-center space-x-2">
                   <Square className="w-5 h-5" />
@@ -649,3 +644,5 @@ export function DeviceControl() {
     </div>
   );
 }
+
+export default DeviceControl;

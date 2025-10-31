@@ -301,3 +301,5 @@ export function Gallery() {
     </div>
   );
 }
+
+export default Gallery;

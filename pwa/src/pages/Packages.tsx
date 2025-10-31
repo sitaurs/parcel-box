@@ -276,3 +276,5 @@ export function Packages() {
     </div>
   );
 }
+
+export default Packages;

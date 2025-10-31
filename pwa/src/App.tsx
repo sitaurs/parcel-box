@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { SocketProvider } from './contexts/SocketContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -11,12 +11,26 @@ import PINSetup from './components/PINSetup';
 import PINUnlock from './components/PINUnlock';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
-import { Packages } from './pages/Packages';
-import { Gallery } from './pages/Gallery';
-import { WhatsApp } from './pages/WhatsApp';
-import { Settings } from './pages/Settings';
-import { About } from './pages/About';
-import { DeviceControl } from './pages/DeviceControl';
+
+// Lazy load heavy components for better initial load performance
+const Packages = lazy(() => import('./pages/Packages').then(m => ({ default: m.Packages })));
+const Gallery = lazy(() => import('./pages/Gallery').then(m => ({ default: m.Gallery })));
+const WhatsApp = lazy(() => import('./pages/WhatsApp').then(m => ({ default: m.WhatsApp })));
+const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
+const DeviceControl = lazy(() => import('./pages/DeviceControl').then(m => ({ default: m.DeviceControl })));
+
+// Loading fallback component
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-950/20 dark:to-purple-950/20">
+      <div className="text-center">
+        <div className="inline-block w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-gray-600 dark:text-gray-400 font-medium">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 // Animated route wrapper
 function AnimatedRoutes() {
@@ -46,7 +60,9 @@ function AnimatedRoutes() {
         path="/packages"
         element={
           <ProtectedRoute>
-            <Packages />
+            <Suspense fallback={<LoadingFallback />}>
+              <Packages />
+            </Suspense>
           </ProtectedRoute>
         }
       />
@@ -54,7 +70,9 @@ function AnimatedRoutes() {
         path="/gallery"
         element={
           <ProtectedRoute>
-            <Gallery />
+            <Suspense fallback={<LoadingFallback />}>
+              <Gallery />
+            </Suspense>
           </ProtectedRoute>
         }
       />
@@ -62,7 +80,9 @@ function AnimatedRoutes() {
         path="/whatsapp"
         element={
           <ProtectedRoute>
-            <WhatsApp />
+            <Suspense fallback={<LoadingFallback />}>
+              <WhatsApp />
+            </Suspense>
           </ProtectedRoute>
         }
       />
@@ -70,7 +90,9 @@ function AnimatedRoutes() {
         path="/settings"
         element={
           <ProtectedRoute>
-            <Settings />
+            <Suspense fallback={<LoadingFallback />}>
+              <Settings />
+            </Suspense>
           </ProtectedRoute>
         }
       />
@@ -78,7 +100,9 @@ function AnimatedRoutes() {
         path="/about"
         element={
           <ProtectedRoute>
-            <About />
+            <Suspense fallback={<LoadingFallback />}>
+              <About />
+            </Suspense>
           </ProtectedRoute>
         }
       />
@@ -86,7 +110,9 @@ function AnimatedRoutes() {
         path="/device/:deviceId"
         element={
           <ProtectedRoute>
-            <DeviceControl />
+            <Suspense fallback={<LoadingFallback />}>
+              <DeviceControl />
+            </Suspense>
           </ProtectedRoute>
         }
       />

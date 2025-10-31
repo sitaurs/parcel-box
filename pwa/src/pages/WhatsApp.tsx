@@ -191,9 +191,17 @@ export function WhatsApp() {
         return response.json();
       });
 
-      await Promise.all(promises);
+      // Use Promise.allSettled for better error handling - some messages can fail without breaking all
+      const results = await Promise.allSettled(promises);
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
       
-      addLog(`✅ Test message sent to ${settings.recipients.length} recipient(s)!`, 'success');
+      if (succeeded > 0) {
+        addLog(`✅ Test message sent to ${succeeded} of ${settings.recipients.length} recipient(s)!`, 'success');
+      }
+      if (failed > 0) {
+        addLog(`⚠️ Failed to send to ${failed} recipient(s)`, 'warning');
+      }
       setTestMessage('');
     } catch (error) {
       console.error('Error sending test message:', error);
@@ -860,3 +868,5 @@ function BlockedNotice({ retryAt }: { retryAt?: number }) {
     </div>
   );
 }
+
+export default WhatsApp;

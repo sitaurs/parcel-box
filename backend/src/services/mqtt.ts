@@ -13,6 +13,7 @@ class MQTTService {
   private client: mqtt.MqttClient | null = null;
   private config: MQTTConfig;
   private isConnected: boolean = false;
+  private messageQueue: Map<string, Promise<void>> = new Map(); // Queue per device to prevent race conditions
 
   constructor(config: MQTTConfig) {
     this.config = config;
@@ -49,7 +50,7 @@ class MQTTService {
     });
 
     this.client.on('message', async (topic, message) => {
-      await this.handleMessage(topic, message.toString());
+      await this.handleMessageWithQueue(topic, message.toString());
     });
 
     this.client.on('error', (error) => {
@@ -65,6 +66,36 @@ class MQTTService {
     this.client.on('reconnect', () => {
       console.log('🔄 [MQTT] Reconnecting...');
     });
+  }
+
+  /**
+   * Handle message with queue to prevent race conditions
+   */
+  private async handleMessageWithQueue(topic: string, payload: string): Promise<void> {
+    const parts = topic.split('/');
+    const deviceId = parts[1]; // Extract deviceId for queueing
+    
+    // If there's already a message being processed for this device, queue it
+    const existingPromise = this.messageQueue.get(deviceId);
+    
+    const processPromise = (existingPromise || Promise.resolve()).then(async () => {
+      try {
+        await this.handleMessage(topic, payload);
+      } catch (error) {
+        console.error('[MQTT] Message processing error:', error);
+      }
+    });
+    
+    this.messageQueue.set(deviceId, processPromise);
+    
+    // Clean up after processing
+    processPromise.finally(() => {
+      if (this.messageQueue.get(deviceId) === processPromise) {
+        this.messageQueue.delete(deviceId);
+      }
+    });
+    
+    await processPromise;
   }
 
   /**
