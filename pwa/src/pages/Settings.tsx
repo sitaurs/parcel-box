@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, Moon, Sun, Smartphone, Check, Lock, Key } from 'lucide-react';
+import { ChevronRight, Moon, Sun, Smartphone, Check, Lock, Key, Sparkles } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useGlassTheme } from '../contexts/GlassThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Snackbar } from '../components/Snackbar';
 import PINSetup from '../components/PINSetup';
@@ -15,6 +16,7 @@ interface SettingsData {
 
 export function Settings() {
   const { theme, setTheme } = useTheme();
+  const { glassTheme, setGlassTheme } = useGlassTheme();
   const { updatePin } = useAuth();
   const [showPINSetup, setShowPINSetup] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -164,30 +166,73 @@ export function Settings() {
           </button>
           
           {expandedSection === 'appearance' && (
-            <div className="border-t border-gray-100 dark:border-gray-700 p-4 space-y-3">
-              {[
-                { value: 'light', label: 'Light', icon: '☀️' },
-                { value: 'dark', label: 'Dark', icon: '🌙' },
-                { value: 'auto', label: 'Auto', icon: '🔄' }
-              ].map(option => (
-                <button
-                  key={option.value}
-                  onClick={() => updateSetting('appearance', 'theme', option.value)}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
-                    settings.appearance.theme === option.value
-                      ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-500'
-                      : 'bg-gray-50 dark:bg-gray-700 border-2 border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">{option.icon}</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{option.label}</span>
-                  </div>
-                  {settings.appearance.theme === option.value && (
-                    <Check className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  )}
-                </button>
-              ))}
+            <div className="border-t border-gray-100 dark:border-gray-700 p-4 space-y-4">
+              {/* Theme Selection */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Color Theme</p>
+                <div className="space-y-2">
+                  {[
+                    { value: 'light', label: 'Light', icon: '☀️' },
+                    { value: 'dark', label: 'Dark', icon: '🌙' },
+                    { value: 'auto', label: 'Auto', icon: '🔄' }
+                  ].map(option => (
+                    <button
+                      key={option.value}
+                      onClick={() => updateSetting('appearance', 'theme', option.value)}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
+                        settings.appearance.theme === option.value
+                          ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-500'
+                          : 'bg-gray-50 dark:bg-gray-700 border-2 border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{option.icon}</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{option.label}</span>
+                      </div>
+                      {settings.appearance.theme === option.value && (
+                        <Check className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Glass Effect Selection */}
+              <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Glassmorphism Effect</p>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Optional frosted glass visual effect</p>
+                <div className="space-y-2">
+                  {[
+                    { value: 'off', label: 'Off (Clean)', icon: '🚫', desc: 'Default solid backgrounds' },
+                    { value: 'subtle', label: 'Subtle', icon: '✨', desc: 'Light frosted glass effect' },
+                    { value: 'strong', label: 'Strong', icon: '💎', desc: 'Full glassmorphism mode' }
+                  ].map(option => (
+                    <button
+                      key={option.value}
+                      onClick={() => setGlassTheme(option.value as any)}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
+                        glassTheme === option.value
+                          ? 'bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-500'
+                          : 'bg-gray-50 dark:bg-gray-700 border-2 border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className="text-xl">{option.icon}</span>
+                        <div className="text-left">
+                          <p className="font-medium text-gray-900 dark:text-white">{option.label}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{option.desc}</p>
+                        </div>
+                      </div>
+                      {glassTheme === option.value && (
+                        <Check className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>

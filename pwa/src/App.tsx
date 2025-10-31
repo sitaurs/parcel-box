@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { SocketProvider } from './contexts/SocketContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { GlassThemeProvider } from './contexts/GlassThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { MobileLayout } from './components/MobileLayout';
@@ -218,11 +219,13 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <SocketProvider>
-          <AppContent />
-        </SocketProvider>
-      </AuthProvider>
+      <GlassThemeProvider>
+        <AuthProvider>
+          <SocketProvider>
+            <AppContent />
+          </SocketProvider>
+        </AuthProvider>
+      </GlassThemeProvider>
     </ThemeProvider>
   );
 }
