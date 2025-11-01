@@ -170,7 +170,7 @@ export function WhatsApp() {
 
     setSending(true);
     try {
-      const apiUrl = import.meta.env.VITE_WA_API_URL || 'http://localhost:3001';
+      const apiUrl = import.meta.env.VITE_WA_API_URL || 'http://13.213.57.228:3001';
       
       addLog(`📤 Sending test message to ${settings.recipients.length} recipient(s)...`, 'info');
       

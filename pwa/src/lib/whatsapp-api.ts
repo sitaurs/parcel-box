@@ -3,7 +3,12 @@
  * Dedicated HTTP client for backend-whatsapp service
  */
 
-const WA_API_URL = import.meta.env.VITE_WA_API_URL || 'http://localhost:3001';
+import { Capacitor } from '@capacitor/core';
+
+const isNative = Capacitor.isNativePlatform();
+const WA_API_URL = isNative
+  ? (import.meta.env.VITE_WA_API_URL || 'http://13.213.57.228:3001')
+  : (import.meta.env.VITE_WA_API_URL || 'http://localhost:3001');
 
 export interface WAStatus {
   connected: boolean;

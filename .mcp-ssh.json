@@ -1,0 +1,11 @@
+{
+  "hosts": [
+    {
+      "name": "vps-deploy",
+      "host": "13.213.57.228",
+      "user": "ubuntu",
+      "privateKey": "C:/Users/fahri/Downloads/vpsdeploy"
+    }
+  ],
+  "defaultHost": "vps-deploy"
+}

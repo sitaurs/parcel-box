@@ -10,6 +10,9 @@ if (process.env.NODE_ENV === 'production') {
   if (!process.env.API_TOKEN || process.env.API_TOKEN === 'device_token_change_this') {
     throw new Error('❌ SECURITY ERROR: API_TOKEN must be set in production!');
   }
+  if (!process.env.MQTT_USER || !process.env.MQTT_PASS) {
+    throw new Error('❌ SECURITY ERROR: MQTT_USER and MQTT_PASS must be set in production!');
+  }
 }
 
 export const config = {
@@ -52,7 +55,7 @@ export const config = {
     enabled: process.env.MQTT_ENABLED !== 'false', // Default enabled
     host: process.env.MQTT_HOST || '13.213.57.228',
     port: parseInt(process.env.MQTT_PORT || '1883', 10),
-    username: process.env.MQTT_USER || 'smartbox',
-    password: process.env.MQTT_PASS || 'engganngodinginginmcu',
+    username: process.env.MQTT_USER || 'smartbox', // Dev fallback only
+    password: process.env.MQTT_PASS || 'engganngodinginginmcu', // Dev fallback only - DO NOT USE IN PRODUCTION
   },
 };
