@@ -25,6 +25,12 @@ interface SensorData {
   timestamp: string;
 }
 
+interface LockState {
+  locked: boolean;
+  lastAction: 'LOCK' | 'UNLOCK' | null;
+  timestamp: string | null;
+}
+
 export function DeviceControl() {
   const { deviceId } = useParams<{ deviceId: string }>();
   
@@ -36,6 +42,7 @@ export function DeviceControl() {
   });
   const [tempSettings, setTempSettings] = useState<DeviceSettings>(settings);
   const [sensorData, setSensorData] = useState<SensorData | null>(null);
+  const [lockState, setLockState] = useState<LockState>({ locked: false, lastAction: null, timestamp: null });
   const [lastAck, setLastAck] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'control' | 'settings'>('control');
@@ -112,16 +119,35 @@ export function DeviceControl() {
       }
     };
 
+    const handleLockEvent = (data: any) => {
+      try {
+        if (!data || typeof data !== 'object') return;
+        const dataDeviceId = data.deviceId || data.device_id;
+        if (dataDeviceId === deviceId) {
+          setLockState({
+            locked: data.type === 'LOCK',
+            lastAction: data.type,
+            timestamp: data.ts || new Date().toISOString()
+          });
+          setLastAck({ ok: true, action: 'lock', state: data.type });
+        }
+      } catch (err) {
+        console.error('Error handling lock event:', err);
+      }
+    };
+
     socket.on('distance_update', handleDistance);
     socket.on('current_settings', handleSettings);
     socket.on('control_ack', handleControlAck);
     socket.on('settings_ack', handleControlAck); // Same handler for settings ack
+    socket.on('event', handleLockEvent); // Listen for LOCK/UNLOCK events
 
     return () => {
       socket.off('distance_update', handleDistance);
       socket.off('current_settings', handleSettings);
       socket.off('control_ack', handleControlAck);
       socket.off('settings_ack', handleControlAck);
+      socket.off('event', handleLockEvent);
     };
   }, [deviceId]);
 
@@ -182,6 +208,64 @@ export function DeviceControl() {
       setLoading(false);
     }
   }, [deviceId, tempSettings]);
+
+  // Lock door (NEW - API-based)
+  const lockDoor = useCallback(async () => {
+    if (!deviceId) return;
+    setLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+      const response = await fetch(`${apiUrl}/devices/${deviceId}/lock`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ method: 'app' })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ Door locked:', result);
+    } catch (error) {
+      console.error('❌ Lock error:', error);
+      setLastAck({ ok: false, action: 'lock', error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  }, [deviceId]);
+
+  // Unlock door (NEW - API-based)
+  const unlockDoor = useCallback(async () => {
+    if (!deviceId) return;
+    setLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+      const response = await fetch(`${apiUrl}/devices/${deviceId}/unlock`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ method: 'app' })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ Door unlocked:', result);
+    } catch (error) {
+      console.error('❌ Unlock error:', error);
+      setLastAck({ ok: false, action: 'unlock', error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  }, [deviceId]);
 
   // Computed values (memoized)
   const isOnline = useMemo(() => device?.status === 'online', [device?.status]);
@@ -459,31 +543,88 @@ export function DeviceControl() {
               </div>
             </div>
 
-            {/* Lock Control */}
+            {/* Enhanced Lock Control - API Based */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
+                  <Lock className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
+                  Smart Door Lock
+                </h3>
+                {/* Lock Status Indicator */}
+                <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full ${
+                  lockState.locked 
+                    ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' 
+                    : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                }`}>
+                  <Lock className={`w-4 h-4 ${lockState.locked ? '' : 'transform rotate-12'}`} />
+                  <span className="text-xs font-bold uppercase">
+                    {lockState.locked ? 'Locked' : 'Unlocked'}
+                  </span>
+                </div>
+              </div>
+              
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                Control door lock via API - Logged events visible in history
+              </p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={unlockDoor}
+                  disabled={!isOnline || loading}
+                  className="py-4 px-6 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <Lock className="w-5 h-5 transform rotate-12" />
+                    <span>Unlock</span>
+                  </div>
+                </button>
+                <button
+                  onClick={lockDoor}
+                  disabled={!isOnline || loading}
+                  className="py-4 px-6 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <Lock className="w-5 h-5" />
+                    <span>Lock</span>
+                  </div>
+                </button>
+              </div>
+              
+              {lockState.lastAction && lockState.timestamp && (
+                <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
+                  Last action: <span className="font-semibold">{lockState.lastAction}</span> at {new Date(lockState.timestamp).toLocaleTimeString()}
+                </div>
+              )}
+            </div>
+
+            {/* Old MQTT Lock Control - Keep for backward compatibility */}
+            <div className="bg-white/50 dark:bg-gray-800/50 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-                <Lock className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
-                Door Lock (Solenoid) Control
+                <Lock className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
+                Door Lock (Direct MQTT)
               </h3>
+              <p className="text-gray-500 dark:text-gray-400 text-xs mb-3">
+                Legacy control - Use Smart Door Lock above for logged events
+              </p>
               <div className="grid grid-cols-3 gap-3">
                 <button
                   onClick={() => sendControl({ lock: { pulse: true, ms: settings.lock.ms } })}
                   disabled={!isOnline || loading}
-                  className="py-4 px-4 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
+                  className="py-3 px-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95 text-sm"
                 >
                   Pulse
                 </button>
                 <button
                   onClick={() => sendControl({ lock: { open: true } })}
                   disabled={!isOnline || loading}
-                  className="py-4 px-4 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
+                  className="py-3 px-3 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95 text-sm"
                 >
                   Open
                 </button>
                 <button
                   onClick={() => sendControl({ lock: { closed: true } })}
                   disabled={!isOnline || loading}
-                  className="py-4 px-4 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
+                  className="py-3 px-3 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95 text-sm"
                 >
                   Lock
                 </button>
