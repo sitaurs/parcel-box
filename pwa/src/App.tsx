@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { MobileLayout } from './components/MobileLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import InstallPrompt from './components/InstallPrompt';
 import { Onboarding, OnboardingData } from './components/Onboarding';
 import PINSetup from './components/PINSetup';
 import PINUnlock from './components/PINUnlock';
@@ -255,6 +256,7 @@ function App() {
         <AuthProvider>
           <SocketProvider>
             <AppContent />
+            <InstallPrompt />
           </SocketProvider>
         </AuthProvider>
       </GlassThemeProvider>

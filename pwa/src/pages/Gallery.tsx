@@ -45,6 +45,36 @@ export function Gallery() {
     }
   }
 
+  async function handleShare(pkg: Package) {
+    if (!pkg.photoUrl) return;
+
+    try {
+      // Check if Web Share API is available
+      if (navigator.share) {
+        const imageUrl = getImageUrl(pkg.photoUrl);
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const file = new File([blob], `package-${pkg.id}.jpg`, { type: blob.type });
+
+        await navigator.share({
+          title: 'Smart Parcel Box - Package Photo',
+          text: `Package detected on ${new Date(pkg.tsDetected).toLocaleString()}`,
+          files: [file],
+        });
+      } else {
+        // Fallback: Copy image URL to clipboard
+        const imageUrl = getImageUrl(pkg.photoUrl);
+        await navigator.clipboard.writeText(imageUrl);
+        alert('Image URL copied to clipboard!');
+      }
+    } catch (error: any) {
+      // User cancelled or error occurred
+      if (error.name !== 'AbortError') {
+        console.error('Error sharing image:', error);
+      }
+    }
+  }
+
   function handleNext() {
     if (selectedIndex < packages.length - 1) {
       const nextIndex = selectedIndex + 1;
@@ -173,6 +203,7 @@ export function Gallery() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  handleShare(selectedImage);
                 }}
                 className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 transition-all ripple hover:scale-110 active:scale-95 animate-fade-in stagger-2"
               >

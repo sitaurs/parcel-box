@@ -23,6 +23,36 @@ export default defineConfig(({ mode }) => {
           display: 'standalone',
           orientation: 'portrait',
           start_url: '/',
+          shortcuts: [
+            {
+              name: 'Dashboard',
+              short_name: 'Home',
+              description: 'View dashboard',
+              url: '/',
+              icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }],
+            },
+            {
+              name: 'Packages',
+              short_name: 'Packages',
+              description: 'View all packages',
+              url: '/packages',
+              icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }],
+            },
+            {
+              name: 'Gallery',
+              short_name: 'Gallery',
+              description: 'View package photos',
+              url: '/gallery',
+              icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }],
+            },
+            {
+              name: 'Notifications',
+              short_name: 'Notifications',
+              description: 'View notifications',
+              url: '/notifications',
+              icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }],
+            },
+          ],
           icons: [
             {
               src: '/icons/icon-192.png',
