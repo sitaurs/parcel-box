@@ -17,6 +17,7 @@ import pushRouter from './routes/push';
 import whatsappRouter from './routes/whatsapp';
 import lockRouter from './routes/lock';
 import notificationsRouter from './routes/notifications';
+import adminRouter from './routes/admin';
 
 const app = express();
 const server = http.createServer(app);
@@ -84,6 +85,7 @@ app.use('/api/v1/push', pushRouter);
 app.use('/api/v1/wa', whatsappRouter);
 app.use('/api/v1/devices', lockRouter);
 app.use('/api/v1/notifications', notificationsRouter);
+app.use('/api/v1/admin', adminRouter);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
