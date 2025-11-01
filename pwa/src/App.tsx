@@ -22,6 +22,7 @@ const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.S
 const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
 const DeviceControl = lazy(() => import('./pages/DeviceControl').then(m => ({ default: m.DeviceControl })));
 const NotificationHistory = lazy(() => import('./pages/NotificationHistory').then(m => ({ default: m.NotificationHistory })));
+const AdminUsers = lazy(() => import('./pages/AdminUsers').then(m => ({ default: m.default })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -125,6 +126,16 @@ function AnimatedRoutes() {
           <ProtectedRoute>
             <Suspense fallback={<LoadingFallback />}>
               <NotificationHistory />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <AdminUsers />
             </Suspense>
           </ProtectedRoute>
         }

@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Package, ImageIcon, MessageCircle, Settings, LogOut, Menu, X, Wifi, WifiOff, Moon, Sun, Bell } from 'lucide-react';
+import { Home, Package, ImageIcon, MessageCircle, Settings, LogOut, Menu, X, Wifi, WifiOff, Moon, Sun, Bell, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -33,6 +33,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
     { path: '/gallery', icon: ImageIcon, label: 'Gallery', color: 'from-green-500 to-emerald-500' },
     { path: '/notifications', icon: Bell, label: 'Notifications', color: 'from-indigo-500 to-purple-500' },
     { path: '/whatsapp', icon: MessageCircle, label: 'WhatsApp', color: 'from-yellow-500 to-orange-500' },
+    ...(user?.role === 'admin' ? [{ path: '/admin/users', icon: Shield, label: 'Admin', color: 'from-red-500 to-orange-500' }] : []),
     { path: '/settings', icon: Settings, label: 'Settings', color: 'from-gray-500 to-slate-500' },
   ];
 
