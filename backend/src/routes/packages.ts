@@ -13,8 +13,98 @@ import { notificationQueue } from '../services/notificationQueue';
 const router = express.Router();
 
 /**
- * POST /api/v1/packages
- * Upload a package photo with metadata
+ * @swagger
+ * /packages:
+ *   get:
+ *     summary: Get all packages with filtering
+ *     tags: [Packages]
+ *     parameters:
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter packages from this date
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter packages until this date
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search in device ID or notes
+ *       - in: query
+ *         name: deviceId
+ *         schema:
+ *           type: string
+ *         description: Filter by device ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of results per page
+ *     responses:
+ *       200:
+ *         description: List of packages with pagination
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Package'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *   post:
+ *     summary: Create a new package (device only)
+ *     tags: [Packages]
+ *     security:
+ *       - deviceToken: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - photo
+ *             properties:
+ *               photo:
+ *                 type: string
+ *                 format: binary
+ *               distanceCm:
+ *                 type: number
+ *               tsDetected:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       201:
+ *         description: Package created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Package'
  */
 router.post(
   '/',

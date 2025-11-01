@@ -25,8 +25,35 @@ function requireAdmin(req: Request, res: Response, next: any) {
 }
 
 /**
- * GET /api/v1/admin/users
- * Get all users with activity stats
+ * @swagger
+ * tags:
+ *   name: Admin
+ *   description: Admin user management endpoints (admin only)
+ */
+
+/**
+ * @swagger
+ * /admin/users:
+ *   get:
+ *     summary: Get all users
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/users', requireAuth, requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
@@ -83,8 +110,53 @@ router.get('/users/:id', requireAuth, requireAdmin, async (req: Request, res: Re
 });
 
 /**
- * POST /api/v1/admin/users
- * Create new user (admin only)
+ * @swagger
+ * /admin/users:
+ *   post:
+ *     summary: Create a new user
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 minLength: 3
+ *                 example: newuser
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *                 example: password123
+ *               role:
+ *                 type: string
+ *                 enum: [admin, user]
+ *                 default: user
+ *               name:
+ *                 type: string
+ *                 example: John Doe
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Validation error or username exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
  */
 router.post('/users', requireAuth, requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {

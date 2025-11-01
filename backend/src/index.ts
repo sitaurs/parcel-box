@@ -3,7 +3,9 @@ import http from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
+import swaggerUi from 'swagger-ui-express';
 import { config } from './config';
+import { swaggerSpec } from './config/swagger';
 import { initializeSocket } from './services/socket';
 import { initMQTT } from './services/mqtt';
 import { initializeDatabase } from './services/database';
@@ -76,6 +78,12 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Smart Parcel Box API Docs',
+}));
+
 // API routes
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/packages', packagesRouter);
@@ -92,8 +100,10 @@ app.get('/', (req: Request, res: Response) => {
   res.json({
     name: 'Smart Parcel Box API',
     version: '1.0.0',
+    documentation: '/api-docs',
     endpoints: {
       health: '/health',
+      auth: '/api/v1/auth',
       packages: '/api/v1/packages',
       events: '/api/v1/events',
       devices: '/api/v1/devices',
@@ -101,6 +111,7 @@ app.get('/', (req: Request, res: Response) => {
       notifications: '/api/v1/notifications',
       whatsapp: '/api/v1/wa',
       push: '/api/v1/push',
+      admin: '/api/v1/admin',
       websocket: '/ws/socket.io',
     },
   });
