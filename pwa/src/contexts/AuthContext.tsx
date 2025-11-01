@@ -462,16 +462,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('✅ Name saved to backend successfully!');
 
-      // Update local user state
+      // Update local user state - FORCE UPDATE
       const updatedUser = {
         ...user,
         name: name
       };
+      
+      console.log('🔄 Updating user state:', updatedUser);
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      console.log('🔓 Clearing needsNameSetup flag');
       setNeedsNameSetup(false);
       
-      console.log('✅ Name saved locally for user:', user.username);
+      console.log('✅ Name setup complete! User:', user.username, 'Name:', name);
     } catch (error: any) {
       console.error('❌ Error saving name:', error);
       // Provide user-friendly error message

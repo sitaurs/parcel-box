@@ -281,7 +281,8 @@ export function MobileLayout({ children }: MobileLayoutProps) {
 
       {/* Bottom Navigation - Mobile & Tablet only (<1024px) - z-45 (between top bar and sidebar overlay) */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border-t border-gray-200 dark:border-gray-700 z-45 safe-area-bottom animate-slide-in-up shadow-2xl">
-        <div className="grid grid-cols-5 h-16">
+        {/* Dynamic grid based on number of items */}
+        <div className={`grid h-16 ${navItems.length === 5 ? 'grid-cols-5' : navItems.length === 6 ? 'grid-cols-6' : 'grid-cols-7'}`}>
           {navItems.map((item, index) => (
             <NavLink
               key={item.path}
@@ -302,7 +303,9 @@ export function MobileLayout({ children }: MobileLayoutProps) {
                       <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-ping" />
                     )}
                   </div>
-                  <span className={`text-xs font-medium transition-all duration-300 ${isActive ? 'scale-110 font-bold' : ''}`}>{item.label}</span>
+                  <span className={`text-xs font-medium transition-all duration-300 truncate max-w-full px-1 ${isActive ? 'scale-110 font-bold' : ''}`}>
+                    {item.label}
+                  </span>
                 </>
               )}
             </NavLink>

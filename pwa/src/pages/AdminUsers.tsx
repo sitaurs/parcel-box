@@ -32,6 +32,7 @@ export default function AdminUsers() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [deletingUser, setDeleteingUser] = useState<UserData | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -80,19 +81,43 @@ export default function AdminUsers() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (isSubmitting) {
+      console.log('⏳ Already creating user, ignoring duplicate click');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError(''); // Clear previous errors
+    
     try {
+      console.log('👤 Creating user:', formData.username);
       await api.post('/admin/users', formData);
+      console.log('✅ User created successfully');
       setShowCreateModal(false);
       setFormData({ username: '', password: '', name: '', role: 'user' });
       fetchUsers();
     } catch (err: any) {
+      console.error('❌ Failed to create user:', err);
       setError(err.response?.data?.error || 'Failed to create user');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
+
+    // Prevent double submission
+    if (isSubmitting) {
+      console.log('⏳ Already updating user, ignoring duplicate click');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError(''); // Clear previous errors
 
     try {
       const updates: any = {};
@@ -101,12 +126,17 @@ export default function AdminUsers() {
       if (formData.name) updates.name = formData.name;
       if (formData.role) updates.role = formData.role;
 
+      console.log('👤 Updating user:', editingUser.username);
       await api.put(`/admin/users/${editingUser.id}`, updates);
+      console.log('✅ User updated successfully');
       setEditingUser(null);
       setFormData({ username: '', password: '', name: '', role: 'user' });
       fetchUsers();
     } catch (err: any) {
+      console.error('❌ Failed to update user:', err);
       setError(err.response?.data?.error || 'Failed to update user');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -138,6 +168,7 @@ export default function AdminUsers() {
     setDeleteingUser(null);
     setFormData({ username: '', password: '', name: '', role: 'user' });
     setError('');
+    setIsSubmitting(false); // Reset submitting state
   };
 
   if (user?.role !== 'admin') {
@@ -415,15 +446,24 @@ export default function AdminUsers() {
                 <button
                   type="button"
                   onClick={closeModals}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Create User
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    'Create User'
+                  )}
                 </button>
               </div>
             </form>

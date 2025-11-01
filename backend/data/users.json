@@ -5,10 +5,10 @@
       "username": "admin",
       "password": "$2a$10$MAoRoSrOUHgHGxbsYbv/dONneVmUMdki77PEf20T7dJ7pNQh3zbY.",
       "role": "admin",
-      "name": null,
+      "name": "zamani",
       "pin": null,
       "createdAt": "2025-10-27T13:35:55.456Z",
-      "updatedAt": "2025-11-01T00:57:36.994Z"
+      "updatedAt": "2025-11-01T06:22:32.061Z"
     }
   ]
 }

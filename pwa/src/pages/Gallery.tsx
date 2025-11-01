@@ -46,23 +46,40 @@ export function Gallery() {
   }
 
   async function handleShare(pkg: Package) {
-    if (!pkg.photoUrl) return;
+    if (!pkg.photoUrl) {
+      alert('No image available to share');
+      return;
+    }
 
     try {
+      console.log('📤 Attempting to share image:', pkg.photoUrl);
+      
       // Check if Web Share API is available
       if (navigator.share) {
         const imageUrl = getImageUrl(pkg.photoUrl);
+        console.log('🌐 Fetching image from:', imageUrl);
+        
         const response = await fetch(imageUrl);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.status}`);
+        }
+        
         const blob = await response.blob();
+        console.log('📦 Image blob size:', blob.size, 'bytes');
+        
         const file = new File([blob], `package-${pkg.id}.jpg`, { type: blob.type });
 
+        console.log('📤 Sharing via Web Share API...');
         await navigator.share({
           title: 'Smart Parcel Box - Package Photo',
           text: `Package detected on ${new Date(pkg.tsDetected).toLocaleString()}`,
           files: [file],
         });
+        console.log('✅ Share successful');
       } else {
         // Fallback: Copy image URL to clipboard
+        console.log('📋 Web Share API not available, copying URL to clipboard');
         const imageUrl = getImageUrl(pkg.photoUrl);
         await navigator.clipboard.writeText(imageUrl);
         alert('Image URL copied to clipboard!');
@@ -70,7 +87,10 @@ export function Gallery() {
     } catch (error: any) {
       // User cancelled or error occurred
       if (error.name !== 'AbortError') {
-        console.error('Error sharing image:', error);
+        console.error('❌ Error sharing image:', error);
+        alert(`Failed to share image: ${error.message}`);
+      } else {
+        console.log('ℹ️ Share cancelled by user');
       }
     }
   }
