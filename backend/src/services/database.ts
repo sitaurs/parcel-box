@@ -9,6 +9,7 @@ export interface User {
   username: string;
   password: string;
   role: 'admin' | 'user';
+  name: string | null;
   pin: string | null;
   createdAt: string;
   updatedAt: string;
@@ -119,6 +120,7 @@ class JsonDatabase {
       username,
       password: hashedPassword,
       role,
+      name: null,
       pin: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()

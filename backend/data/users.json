@@ -5,9 +5,10 @@
       "username": "admin",
       "password": "$2a$10$MAoRoSrOUHgHGxbsYbv/dONneVmUMdki77PEf20T7dJ7pNQh3zbY.",
       "role": "admin",
-      "pin": "$2a$10$A/jb50uNSTZvJ2NQ2Mbps.6jdYbZSAqwKMyB3Bem0KcxzTdoWwopu",
+      "name": null,
+      "pin": null,
       "createdAt": "2025-10-27T13:35:55.456Z",
-      "updatedAt": "2025-10-31T15:40:22.866Z"
+      "updatedAt": "2025-11-01T00:57:36.994Z"
     }
   ]
 }

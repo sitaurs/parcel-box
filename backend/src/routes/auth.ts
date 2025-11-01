@@ -108,7 +108,7 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
 
 /**
  * GET /api/v1/auth/me
- * Get current user info
+ * Get current user info with profile data
  */
 router.get('/me', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -131,7 +131,9 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
     res.json({
       id: user.id,
       username: user.username,
+      name: user.name || null,
       role: user.role,
+      hasPin: !!user.pin,
     });
   } catch (error: any) {
     console.error('Get user error:', error);
@@ -155,20 +157,70 @@ router.put('/pin', async (req: Request, res: Response): Promise<void> => {
     const decoded = jwt.verify(token, config.jwt.secret) as any;
     const { pin } = req.body;
     
-    // Hash PIN for security
-    const hashedPin = pin ? await bcrypt.hash(pin, 10) : null;
+    if (!pin || pin.length < 4) {
+      res.status(400).json({ error: 'PIN must be at least 4 digits' });
+      return;
+    }
     
-    const updatedUser = await db.updateUserPin(decoded.userId, hashedPin);
+    // Hash PIN for security
+    const hashedPin = await bcrypt.hash(pin, 10);
+    
+    const updatedUser = await db.updateUser(decoded.userId, { pin: hashedPin });
 
     if (!updatedUser) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
 
+    console.log('✅ PIN updated for user:', updatedUser.username);
     res.json({ message: 'PIN updated successfully' });
   } catch (error: any) {
-    console.error('Update PIN error:', error);
+    console.error('❌ Update PIN error:', error);
     res.status(500).json({ error: 'Failed to update PIN' });
+  }
+});
+
+/**
+ * PUT /api/v1/auth/profile
+ * Update user profile (name, etc)
+ */
+router.put('/profile', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      res.status(401).json({ error: 'No token provided' });
+      return;
+    }
+
+    const decoded = jwt.verify(token, config.jwt.secret) as any;
+    const { name } = req.body;
+
+    if (!name || name.trim().length === 0) {
+      res.status(400).json({ error: 'Name is required' });
+      return;
+    }
+
+    const updatedUser = await db.updateUser(decoded.userId, { name: name.trim() });
+
+    if (!updatedUser) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    console.log('✅ Profile updated for user:', updatedUser.username, '- Name:', name);
+    res.json({ 
+      message: 'Profile updated successfully',
+      user: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        name: updatedUser.name,
+        role: updatedUser.role,
+      }
+    });
+  } catch (error: any) {
+    console.error('❌ Update profile error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 

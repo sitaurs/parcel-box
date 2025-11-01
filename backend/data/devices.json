@@ -12,8 +12,8 @@
       "name": "Device box-01",
       "status": "offline",
       "createdAt": "2025-10-27T13:30:40.555Z",
-      "updatedAt": "2025-10-31T15:38:51.609Z",
-      "lastSeen": "2025-10-31T15:38:51.607Z",
+      "updatedAt": "2025-11-01T01:20:03.767Z",
+      "lastSeen": "2025-11-01T01:20:03.767Z",
       "fwVersion": "esp32cam-allinone"
     }
   ]

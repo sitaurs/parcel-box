@@ -10,6 +10,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Onboarding, OnboardingData } from './components/Onboarding';
 import PINSetup from './components/PINSetup';
 import PINUnlock from './components/PINUnlock';
+import NameSetup from './components/NameSetup';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 
@@ -124,7 +125,7 @@ function AnimatedRoutes() {
 
 function AppContent() {
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const { user, isLoading, needsPinSetup, needsPinUnlock, setupPin } = useAuth();
+  const { user, isLoading, needsNameSetup, needsPinSetup, needsPinUnlock, setupName, setupPin } = useAuth();
 
   useEffect(() => {
     // Check onboarding ONLY on first mount when user exists
@@ -151,6 +152,10 @@ function AppContent() {
     } else if (data.theme === 'light') {
       document.documentElement.classList.remove('dark');
     }
+  };
+
+  const handleNameSetup = async (name: string) => {
+    await setupName(name);
   };
 
   const handlePinSetup = (pin: string) => {
@@ -189,13 +194,18 @@ function AppContent() {
                   <PINUnlock onSuccess={handlePinUnlock} />
                 )}
 
-                {/* Show PIN setup screen if needed (after login, before onboarding) */}
-                {!isLoading && needsPinSetup && user && !needsPinUnlock && (
+                {/* Show Name setup screen first (before PIN setup) */}
+                {!isLoading && needsNameSetup && user && !needsPinUnlock && (
+                  <NameSetup onComplete={handleNameSetup} />
+                )}
+
+                {/* Show PIN setup screen if needed (after name setup, before onboarding) */}
+                {!isLoading && !needsNameSetup && needsPinSetup && user && !needsPinUnlock && (
                   <PINSetup onComplete={handlePinSetup} onSkip={() => setupPin('')} />
                 )}
 
-                {/* Show onboarding after PIN setup */}
-                {!isLoading && !needsPinSetup && !needsPinUnlock && showOnboarding && (
+                {/* Show onboarding after name & PIN setup */}
+                {!isLoading && !needsNameSetup && !needsPinSetup && !needsPinUnlock && showOnboarding && (
                   <Onboarding onComplete={handleOnboardingComplete} />
                 )}
 

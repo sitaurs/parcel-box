@@ -4,7 +4,9 @@ import { API_BASE_URL } from '../lib/api';
 interface User {
   id: string;
   username: string;
+  name?: string | null;
   role: string;
+  hasPin?: boolean;
 }
 
 interface AuthContextType {
@@ -14,12 +16,15 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
+  needsNameSetup: boolean;
   needsPinSetup: boolean;
   needsPinUnlock: boolean;
+  setupName: (name: string) => Promise<void>;
   setupPin: (pin: string) => Promise<void>;
   updatePin: (oldPin: string, newPin: string) => Promise<boolean>;
   unlockWithPin: (pin: string) => boolean;
   clearPinRequirement: () => void;
+  fetchUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +37,7 @@ function isMobileDevice(): boolean {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [needsNameSetup, setNeedsNameSetup] = useState(false);
   const [needsPinSetup, setNeedsPinSetup] = useState(false);
   const [needsPinUnlock, setNeedsPinUnlock] = useState(false);
 
@@ -155,18 +161,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        const userData = {
-          id: data.user.id,
-          username: data.user.username,
-          role: data.user.role,
-        };
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('token', data.token);
         updateLastActivity();
 
-        // Check if mobile needs PIN setup (only after first login)
+        // Fetch complete user profile (name, hasPin, etc) from /auth/me
+        const profileResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${data.token}`
+          }
+        });
+
+        let userData = {
+          id: data.user.id,
+          username: data.user.username,
+          role: data.user.role,
+          name: null,
+          hasPin: false,
+        };
+
+        if (profileResponse.ok) {
+          userData = await profileResponse.json();
+        }
+
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+
+        // Check if mobile needs name setup
         const isMobile = isMobileDevice();
+        if (isMobile && !userData.name) {
+          console.log('📝 Name setup required for mobile device');
+          setNeedsNameSetup(true);
+          return true; // Login successful, but show name setup
+        }
+
+        // Check if mobile needs PIN setup (only after name is set)
         const savedPinData = localStorage.getItem('userPin');
         
         if (isMobile && !savedPinData) {
@@ -370,8 +398,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout();
   };
 
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // Check if name setup needed (only on mobile)
+        const isMobile = isMobileDevice();
+        if (isMobile && !userData.name) {
+          console.log('📝 Name setup required');
+          setNeedsNameSetup(true);
+        }
+        
+        console.log('✅ User profile fetched:', userData);
+      }
+    } catch (error) {
+      console.error('❌ Fetch profile error:', error);
+    }
+  };
+
+  const setupName = async (name: string) => {
+    if (!user) {
+      throw new Error('No user logged in');
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      console.log('💾 Setup Name - Sending to backend:', {
+        name,
+        userId: user.id,
+        apiUrl: `${API_BASE_URL}/auth/profile`,
+        hasToken: !!token
+      });
+
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name })
+      });
+
+      const responseData = await response.json();
+      console.log('📡 Backend response:', response.status, responseData);
+
+      if (!response.ok) {
+        console.error('❌ Failed to save name to backend:', responseData);
+        throw new Error('Backend name save failed: ' + responseData.error);
+      }
+
+      console.log('✅ Name saved to backend successfully!');
+
+      // Update local user state
+      const updatedUser = {
+        ...user,
+        name: name
+      };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setNeedsNameSetup(false);
+      
+      console.log('✅ Name saved locally for user:', user.username);
+    } catch (error: any) {
+      console.error('❌ Error saving name:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setUser(null);
+    setNeedsNameSetup(false);
     setNeedsPinSetup(false);
     setNeedsPinUnlock(false);
     localStorage.removeItem('user');
@@ -408,12 +517,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         isAuthenticated: !!user,
         isLoading,
+        needsNameSetup,
         needsPinSetup,
         needsPinUnlock,
+        setupName,
         setupPin,
         updatePin,
         unlockWithPin,
         clearPinRequirement,
+        fetchUserProfile,
       }}
     >
       {children}
