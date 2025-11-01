@@ -1,27 +1,47 @@
 import { useState, useEffect } from 'react';
-import { Search, X, Filter, Calendar, MapPin, Package as PackageIcon } from 'lucide-react';
+import { Search, X, Filter, Calendar, MapPin, Package as PackageIcon, Save, Sliders, RotateCcw } from 'lucide-react';
 import { getPackages, type Package } from '../lib/api';
 import { getImageUrl, getPlaceholderImage } from '../lib/images';
+
+interface FilterPreset {
+  name: string;
+  status: string;
+  dateFrom: string;
+  dateTo: string;
+  distanceMin: number;
+  distanceMax: number;
+  searchQuery: string;
+}
 
 export function Packages() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [distanceMin, setDistanceMin] = useState<number>(0);
+  const [distanceMax, setDistanceMax] = useState<number>(100);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [filterPresets, setFilterPresets] = useState<FilterPreset[]>([]);
+  const [presetName, setPresetName] = useState('');
+  const [showSavePreset, setShowSavePreset] = useState(false);
 
   useEffect(() => {
     loadPackages();
-  }, [statusFilter]);
+    loadFilterPresets();
+  }, []);
+
+  useEffect(() => {
+    filterPackagesLocally();
+  }, [searchQuery, statusFilter, dateFrom, dateTo, distanceMin, distanceMax]);
 
   async function loadPackages() {
     try {
       setLoading(true);
-      const data = await getPackages({ 
-        limit: 100,
-        status: statusFilter === 'all' ? undefined : statusFilter
-      });
+      const data = await getPackages({ limit: 200 });
       setPackages(data);
     } catch (error) {
       console.error('Error loading packages:', error);
@@ -30,10 +50,114 @@ export function Packages() {
     }
   }
 
-  const filteredPackages = packages.filter(pkg =>
-    pkg.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    pkg.deviceId.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  function loadFilterPresets() {
+    const saved = localStorage.getItem('package-filter-presets');
+    if (saved) {
+      try {
+        setFilterPresets(JSON.parse(saved));
+      } catch (error) {
+        console.error('Error loading filter presets:', error);
+      }
+    }
+  }
+
+  function saveFilterPreset() {
+    if (!presetName.trim()) {
+      alert('Please enter a preset name');
+      return;
+    }
+
+    const preset: FilterPreset = {
+      name: presetName.trim(),
+      status: statusFilter.join(','),
+      dateFrom,
+      dateTo,
+      distanceMin,
+      distanceMax,
+      searchQuery,
+    };
+
+    const newPresets = [...filterPresets, preset];
+    setFilterPresets(newPresets);
+    localStorage.setItem('package-filter-presets', JSON.stringify(newPresets));
+    setPresetName('');
+    setShowSavePreset(false);
+    alert(`Filter preset "${preset.name}" saved!`);
+  }
+
+  function loadFilterPreset(preset: FilterPreset) {
+    setStatusFilter(preset.status ? preset.status.split(',').filter(Boolean) : []);
+    setDateFrom(preset.dateFrom);
+    setDateTo(preset.dateTo);
+    setDistanceMin(preset.distanceMin);
+    setDistanceMax(preset.distanceMax);
+    setSearchQuery(preset.searchQuery);
+    setShowAdvanced(true);
+  }
+
+  function deleteFilterPreset(presetName: string) {
+    if (!confirm(`Delete preset "${presetName}"?`)) return;
+    const newPresets = filterPresets.filter(p => p.name !== presetName);
+    setFilterPresets(newPresets);
+    localStorage.setItem('package-filter-presets', JSON.stringify(newPresets));
+  }
+
+  function resetFilters() {
+    setSearchQuery('');
+    setStatusFilter([]);
+    setDateFrom('');
+    setDateTo('');
+    setDistanceMin(0);
+    setDistanceMax(100);
+  }
+
+  function filterPackagesLocally() {
+    // This is just for UI feedback, actual filtering happens in filteredPackages
+  }
+
+  const toggleStatusFilter = (status: string) => {
+    if (statusFilter.includes(status)) {
+      setStatusFilter(statusFilter.filter(s => s !== status));
+    } else {
+      setStatusFilter([...statusFilter, status]);
+    }
+  };
+
+  const filteredPackages = packages.filter(pkg => {
+    // Search query filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matches =
+        pkg.id.toLowerCase().includes(query) ||
+        pkg.deviceId.toLowerCase().includes(query) ||
+        pkg.note?.toLowerCase().includes(query);
+      if (!matches) return false;
+    }
+
+    // Status filter (multi-select)
+    if (statusFilter.length > 0 && !statusFilter.includes(pkg.status)) {
+      return false;
+    }
+
+    // Date range filter
+    if (dateFrom) {
+      const pkgDate = new Date(pkg.tsDetected).toISOString().split('T')[0];
+      if (pkgDate < dateFrom) return false;
+    }
+    if (dateTo) {
+      const pkgDate = new Date(pkg.tsDetected).toISOString().split('T')[0];
+      if (pkgDate > dateTo) return false;
+    }
+
+    // Distance range filter
+    if (pkg.distanceCm !== null && pkg.distanceCm !== undefined) {
+      if (pkg.distanceCm < distanceMin || pkg.distanceCm > distanceMax) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -62,45 +186,206 @@ export function Packages() {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`p-3 rounded-xl transition-all ${
-              showFilters || statusFilter !== 'all'
+              showFilters || statusFilter.length > 0
                 ? 'bg-blue-500 text-white'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
             }`}
           >
             <Filter className="w-5 h-5" />
           </button>
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className={`p-3 rounded-xl transition-all ${
+              showAdvanced
+                ? 'bg-indigo-500 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+            }`}
+            title="Advanced Filters"
+          >
+            <Sliders className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Filter Chips */}
+        {/* Status Filter Chips */}
         {showFilters && (
-          <div className="flex space-x-2 overflow-x-auto pb-2 -mx-4 px-4">
-            {['all', 'captured', 'delivered', 'dropped'].map((status) => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                  statusFilter === status
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {['captured', 'delivered', 'dropped', 'collected'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => toggleStatusFilter(status)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                    statusFilter.includes(status)
+                      ? 'bg-blue-500 text-white shadow-md scale-105'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Results count */}
+        {/* Advanced Filters */}
+        {showAdvanced && (
+          <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-900 dark:text-white flex items-center">
+                <Sliders className="w-4 h-4 mr-2" />
+                Advanced Filters
+              </h3>
+              <button
+                onClick={resetFilters}
+                className="text-sm text-red-600 dark:text-red-400 hover:underline flex items-center"
+              >
+                <RotateCcw className="w-3 h-3 mr-1" />
+                Reset All
+              </button>
+            </div>
+
+            {/* Date Range */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  From Date
+                </label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  To Date
+                </label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Distance Range */}
+            <div>
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
+                <span className="flex items-center">
+                  <MapPin className="w-3 h-3 mr-1" />
+                  Distance Range (cm)
+                </span>
+                <span className="text-blue-600 dark:text-blue-400 font-bold">
+                  {distanceMin} - {distanceMax} cm
+                </span>
+              </label>
+              <div className="flex items-center space-x-3">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={distanceMin}
+                  onChange={(e) => setDistanceMin(Number(e.target.value))}
+                  className="flex-1"
+                />
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={distanceMax}
+                  onChange={(e) => setDistanceMax(Number(e.target.value))}
+                  className="flex-1"
+                />
+              </div>
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <span>0 cm</span>
+                <span>100 cm</span>
+              </div>
+            </div>
+
+            {/* Filter Presets */}
+            {filterPresets.length > 0 && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Saved Presets
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {filterPresets.map((preset) => (
+                    <div key={preset.name} className="flex items-center space-x-1 bg-white dark:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600">
+                      <button
+                        onClick={() => loadFilterPreset(preset)}
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        {preset.name}
+                      </button>
+                      <button
+                        onClick={() => deleteFilterPreset(preset.name)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Save Preset */}
+            <div className="flex items-center space-x-2">
+              {!showSavePreset ? (
+                <button
+                  onClick={() => setShowSavePreset(true)}
+                  className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 flex items-center"
+                >
+                  <Save className="w-4 h-4 mr-1" />
+                  Save Current Filters
+                </button>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Preset name..."
+                    value={presetName}
+                    onChange={(e) => setPresetName(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  />
+                  <button
+                    onClick={saveFilterPreset}
+                    className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700"
+                  >
+                    <Save className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowSavePreset(false);
+                      setPresetName('');
+                    }}
+                    className="px-4 py-2 rounded-lg bg-gray-600 text-white text-sm font-medium hover:bg-gray-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Results count with active filters */}
         <div className="flex items-center justify-between text-sm">
           <p className="text-gray-600 dark:text-gray-400">
-            <span className="font-bold text-gray-900 dark:text-white">{filteredPackages.length}</span> packages found
+            <span className="font-bold text-gray-900 dark:text-white">{filteredPackages.length}</span> / {packages.length} packages
           </p>
-          {statusFilter !== 'all' && (
+          {(statusFilter.length > 0 || searchQuery || dateFrom || dateTo) && (
             <button
-              onClick={() => setStatusFilter('all')}
-              className="text-blue-600 dark:text-blue-400 font-medium"
+              onClick={resetFilters}
+              className="text-blue-600 dark:text-blue-400 font-medium flex items-center"
             >
-              Clear filter
+              <X className="w-3 h-3 mr-1" />
+              Clear all filters
             </button>
           )}
         </div>
