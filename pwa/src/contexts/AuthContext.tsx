@@ -457,7 +457,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!response.ok) {
         console.error('❌ Failed to save name to backend:', responseData);
-        throw new Error('Backend name save failed: ' + responseData.error);
+        throw new Error(responseData.error || 'Gagal menyimpan nama ke server');
       }
 
       console.log('✅ Name saved to backend successfully!');
@@ -474,6 +474,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('✅ Name saved locally for user:', user.username);
     } catch (error: any) {
       console.error('❌ Error saving name:', error);
+      // Provide user-friendly error message
+      if (error.message === 'Failed to fetch') {
+        throw new Error('Tidak dapat terhubung ke server. Periksa koneksi internet Anda.');
+      }
       throw error;
     }
   };

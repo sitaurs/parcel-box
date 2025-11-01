@@ -12,6 +12,12 @@ export default function NameSetup({ onComplete }: NameSetupProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Prevent double submission
+    if (isSubmitting) {
+      console.log('⏳ Already submitting, ignoring duplicate click');
+      return;
+    }
+    
     if (name.trim().length < 2) {
       setError('Nama minimal 2 karakter');
       return;
@@ -23,10 +29,16 @@ export default function NameSetup({ onComplete }: NameSetupProps) {
     }
 
     setIsSubmitting(true);
+    setError(''); // Clear previous errors
+    
     try {
+      console.log('💾 Submitting name:', name.trim());
       await onComplete(name.trim());
+      console.log('✅ Name submitted successfully');
+      // Don't reset isSubmitting - let parent component handle state change
     } catch (err: any) {
-      setError(err.message || 'Gagal menyimpan nama');
+      console.error('❌ Name submission failed:', err);
+      setError(err.message || 'Gagal menyimpan nama. Silakan coba lagi.');
       setIsSubmitting(false);
     }
   };
