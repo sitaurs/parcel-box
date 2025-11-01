@@ -3,8 +3,11 @@
  * Handles queuing and retry logic for WhatsApp notifications
  */
 
+import { db } from './database';
+
 interface QueuedNotification {
   id: string;
+  dbId: string | null; // Reference to database notification record
   type: 'package' | 'status_update';
   to: string;
   data: any;
@@ -29,11 +32,24 @@ class NotificationQueueService {
   /**
    * Add notification to queue
    */
-  enqueue(type: 'package' | 'status_update', to: string, data: any): string {
+  async enqueue(type: 'package' | 'status_update', to: string, data: any): Promise<string> {
     const id = `${type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
+    // Create database record
+    const dbNotification = await db.createNotification({
+      type: type === 'package' ? 'package' : 'status_update',
+      recipient: to,
+      packageId: data.packageId || null,
+      message: data.message || `${type} notification to ${to}`,
+      status: 'pending',
+      attempts: 0,
+      error: null,
+      sentAt: null,
+    });
+
     const notification: QueuedNotification = {
       id,
+      dbId: dbNotification.id,
       type,
       to,
       data,
@@ -78,6 +94,15 @@ class NotificationQueueService {
         const success = await this.sendNotification(notification);
 
         if (success) {
+          // Update database: mark as sent
+          if (notification.dbId) {
+            await db.updateNotification(notification.dbId, {
+              status: 'sent',
+              sentAt: new Date().toISOString(),
+              attempts: notification.attempts + 1,
+            });
+          }
+
           // Remove from queue
           this.queue = this.queue.filter(n => n.id !== notification.id);
           console.log(`✅ Notification sent: ${notification.id}`);
@@ -85,7 +110,23 @@ class NotificationQueueService {
           // Increment attempts and schedule retry
           notification.attempts++;
           
+          // Update database: increment attempts
+          if (notification.dbId) {
+            await db.updateNotification(notification.dbId, {
+              attempts: notification.attempts,
+            });
+          }
+
           if (notification.attempts >= notification.maxAttempts) {
+            // Update database: mark as failed
+            if (notification.dbId) {
+              await db.updateNotification(notification.dbId, {
+                status: 'failed',
+                error: 'Max retry attempts reached',
+                attempts: notification.attempts,
+              });
+            }
+
             // Max attempts reached, remove from queue
             this.queue = this.queue.filter(n => n.id !== notification.id);
             console.log(`❌ Notification failed after ${notification.attempts} attempts: ${notification.id}`);

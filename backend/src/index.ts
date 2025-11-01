@@ -15,6 +15,8 @@ import eventsRouter from './routes/events';
 import devicesRouter from './routes/devices';
 import pushRouter from './routes/push';
 import whatsappRouter from './routes/whatsapp';
+import lockRouter from './routes/lock';
+import notificationsRouter from './routes/notifications';
 
 const app = express();
 const server = http.createServer(app);
@@ -80,6 +82,8 @@ app.use('/api/v1/events', eventsRouter);
 app.use('/api/v1/devices', devicesRouter);
 app.use('/api/v1/push', pushRouter);
 app.use('/api/v1/wa', whatsappRouter);
+app.use('/api/v1/devices', lockRouter);
+app.use('/api/v1/notifications', notificationsRouter);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -91,6 +95,8 @@ app.get('/', (req: Request, res: Response) => {
       packages: '/api/v1/packages',
       events: '/api/v1/events',
       devices: '/api/v1/devices',
+      lock: '/api/v1/devices/:id/lock',
+      notifications: '/api/v1/notifications',
       whatsapp: '/api/v1/wa',
       push: '/api/v1/push',
       websocket: '/ws/socket.io',

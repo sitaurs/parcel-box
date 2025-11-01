@@ -21,6 +21,7 @@ const WhatsApp = lazy(() => import('./pages/WhatsApp').then(m => ({ default: m.W
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
 const DeviceControl = lazy(() => import('./pages/DeviceControl').then(m => ({ default: m.DeviceControl })));
+const NotificationHistory = lazy(() => import('./pages/NotificationHistory').then(m => ({ default: m.NotificationHistory })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -114,6 +115,16 @@ function AnimatedRoutes() {
           <ProtectedRoute>
             <Suspense fallback={<LoadingFallback />}>
               <DeviceControl />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <NotificationHistory />
             </Suspense>
           </ProtectedRoute>
         }

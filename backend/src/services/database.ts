@@ -68,6 +68,20 @@ export interface PushSubscription {
   updatedAt: string;
 }
 
+export interface Notification {
+  id: string;
+  type: 'package' | 'status_update' | 'custom';
+  recipient: string;
+  packageId: string | null;
+  message: string;
+  status: 'pending' | 'sent' | 'failed' | 'cancelled';
+  attempts: number;
+  error: string | null;
+  sentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 class JsonDatabase {
   private async readFile<T>(filename: string): Promise<T> {
     try {
@@ -369,9 +383,92 @@ class JsonDatabase {
     
     return deletedCount;
   }
+
+  // Notifications
+  async getNotifications(): Promise<Notification[]> {
+    try {
+      const data = await this.readFile<{ notifications: Notification[] }>('notifications.json');
+      return data.notifications;
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getNotificationById(id: string): Promise<Notification | null> {
+    const notifications = await this.getNotifications();
+    return notifications.find(n => n.id === id) || null;
+  }
+
+  async createNotification(notif: Omit<Notification, 'id' | 'createdAt' | 'updatedAt'>): Promise<Notification> {
+    const notifications = await this.getNotifications();
+    const id = `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const now = new Date().toISOString();
+
+    const newNotification: Notification = {
+      ...notif,
+      id,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    notifications.push(newNotification);
+    await this.writeFile('notifications.json', { notifications });
+    return newNotification;
+  }
+
+  async updateNotification(id: string, updates: Partial<Omit<Notification, 'id' | 'createdAt'>>): Promise<Notification | null> {
+    const notifications = await this.getNotifications();
+    const index = notifications.findIndex(n => n.id === id);
+    
+    if (index === -1) return null;
+
+    const updated: Notification = {
+      ...notifications[index],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+
+    notifications[index] = updated;
+    await this.writeFile('notifications.json', { notifications });
+    return updated;
+  }
+
+  async deleteNotification(id: string): Promise<boolean> {
+    const notifications = await this.getNotifications();
+    const filtered = notifications.filter(n => n.id !== id);
+    
+    if (filtered.length === notifications.length) {
+      return false;
+    }
+
+    await this.writeFile('notifications.json', { notifications: filtered });
+    return true;
+  }
+
+  async getNotificationsByRecipient(recipient: string, limit?: number): Promise<Notification[]> {
+    const notifications = await this.getNotifications();
+    const filtered = notifications
+      .filter(n => n.recipient === recipient)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    return limit ? filtered.slice(0, limit) : filtered;
+  }
+
+  async getNotificationsByStatus(status: Notification['status'], limit?: number): Promise<Notification[]> {
+    const notifications = await this.getNotifications();
+    const filtered = notifications
+      .filter(n => n.status === status)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    return limit ? filtered.slice(0, limit) : filtered;
+  }
 }
 
 export const db = new JsonDatabase();
+
 
 // Initialize admin user on startup
 export async function initializeDatabase() {
