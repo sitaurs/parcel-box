@@ -70,12 +70,36 @@ app.use((req, res, next) => {
 app.use('/media', express.static(path.resolve(config.storage.dir)));
 
 // Health check
-app.get('/health', (req: Request, res: Response) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
+app.get('/health', async (req: Request, res: Response) => {
+  try {
+    // Check database connection
+    const users = await require('./services/database').db.getUsers();
+    const dbHealthy = Array.isArray(users);
+
+    const health = {
+      status: dbHealthy ? 'healthy' : 'unhealthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
+      },
+      database: {
+        status: dbHealthy ? 'connected' : 'error',
+        users: dbHealthy ? users.length : 0,
+      },
+      environment: process.env.NODE_ENV || 'development',
+      version: '1.0.0',
+    };
+
+    res.status(dbHealthy ? 200 : 503).json(health);
+  } catch (error) {
+    res.status(503).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      error: 'Health check failed',
+    });
+  }
 });
 
 // API Documentation
