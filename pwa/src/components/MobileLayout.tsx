@@ -28,11 +28,16 @@ export function MobileLayout({ children }: MobileLayoutProps) {
 
   // Single source of truth for navigation items
   const navItems = [
-    { path: '/', icon: Home, label: 'Dashboard', color: 'from-blue-500 to-cyan-500' },
+    { path: '/', icon: Home, label: 'Home', color: 'from-blue-500 to-cyan-500' },
     { path: '/packages', icon: Package, label: 'Packages', color: 'from-purple-500 to-pink-500' },
     { path: '/gallery', icon: ImageIcon, label: 'Gallery', color: 'from-green-500 to-emerald-500' },
-    { path: '/notifications', icon: Bell, label: 'Notifications', color: 'from-indigo-500 to-purple-500' },
-    { path: '/whatsapp', icon: MessageCircle, label: 'WhatsApp', color: 'from-yellow-500 to-orange-500' },
+    { path: '/notifications', icon: Bell, label: 'Alerts', color: 'from-indigo-500 to-purple-500' },
+    { path: '/whatsapp', icon: MessageCircle, label: 'Chat', color: 'from-yellow-500 to-orange-500' },
+  ];
+
+  // Admin link only in sidebar, not bottom nav (too cramped)
+  const sidebarItems = [
+    ...navItems,
     ...(user?.role === 'admin' ? [{ path: '/admin/users', icon: Shield, label: 'Admin', color: 'from-red-500 to-orange-500' }] : []),
     { path: '/settings', icon: Settings, label: 'Settings', color: 'from-gray-500 to-slate-500' },
   ];
@@ -258,7 +263,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
 
               {/* Navigation */}
               <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-                {navItems.map((item) => (
+                {sidebarItems.map((item) => (
                   <SidebarNavLink key={item.path} item={item} onClick={() => setSidebarOpen(false)} />
                 ))}
               </nav>
@@ -279,16 +284,15 @@ export function MobileLayout({ children }: MobileLayoutProps) {
         </div>
       </main>
 
-      {/* Bottom Navigation - Mobile & Tablet only (<1024px) - z-45 (between top bar and sidebar overlay) */}
+      {/* Bottom Navigation - Mobile & Tablet only (<1024px) - z-45 - FIXED 5 ICONS */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border-t border-gray-200 dark:border-gray-700 z-45 safe-area-bottom animate-slide-in-up shadow-2xl">
-        {/* Dynamic grid based on number of items */}
-        <div className={`grid h-16 ${navItems.length === 5 ? 'grid-cols-5' : navItems.length === 6 ? 'grid-cols-6' : 'grid-cols-7'}`}>
+        <div className="grid grid-cols-5 h-16">
           {navItems.map((item, index) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center space-y-1 transition-all duration-300 animate-fade-in-up stagger-${index + 1} ${
+                `flex flex-col items-center justify-center space-y-0.5 transition-all duration-300 animate-fade-in-up stagger-${index + 1} ${
                   isActive
                     ? 'text-blue-600 dark:text-blue-400'
                     : 'text-gray-500 dark:text-gray-400'
@@ -297,13 +301,13 @@ export function MobileLayout({ children }: MobileLayoutProps) {
             >
               {({ isActive }) => (
                 <>
-                  <div className={`relative transition-all duration-300 ${isActive ? 'scale-125 animate-bounce-in' : 'hover:scale-110'}`}>
+                  <div className={`relative transition-all duration-300 ${isActive ? 'scale-110 animate-bounce-in' : 'hover:scale-110'}`}>
                     <item.icon className={`w-6 h-6 ${isActive ? 'animate-pulse-glow' : ''}`} />
                     {isActive && (
                       <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-ping" />
                     )}
                   </div>
-                  <span className={`text-xs font-medium transition-all duration-300 truncate max-w-full px-1 ${isActive ? 'scale-110 font-bold' : ''}`}>
+                  <span className={`text-[10px] font-medium transition-all duration-300 truncate max-w-full px-0.5 ${isActive ? 'font-bold' : ''}`}>
                     {item.label}
                   </span>
                 </>

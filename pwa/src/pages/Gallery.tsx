@@ -55,7 +55,7 @@ export function Gallery() {
       console.log('📤 Attempting to share image:', pkg.photoUrl);
       
       // Check if Web Share API is available
-      if (navigator.share) {
+      if (navigator.share && navigator.canShare) {
         const imageUrl = getImageUrl(pkg.photoUrl);
         console.log('🌐 Fetching image from:', imageUrl);
         
@@ -69,20 +69,44 @@ export function Gallery() {
         console.log('📦 Image blob size:', blob.size, 'bytes');
         
         const file = new File([blob], `package-${pkg.id}.jpg`, { type: blob.type });
-
-        console.log('📤 Sharing via Web Share API...');
-        await navigator.share({
-          title: 'Smart Parcel Box - Package Photo',
-          text: `Package detected on ${new Date(pkg.tsDetected).toLocaleString()}`,
-          files: [file],
-        });
-        console.log('✅ Share successful');
+        
+        // Check if files can be shared
+        if (navigator.canShare({ files: [file] })) {
+          console.log('📤 Sharing via Web Share API...');
+          await navigator.share({
+            title: 'Smart Parcel Box - Package Photo',
+            text: `Package detected on ${new Date(pkg.tsDetected).toLocaleString()}`,
+            files: [file],
+          });
+          console.log('✅ Share successful');
+        } else {
+          throw new Error('File sharing not supported');
+        }
       } else {
         // Fallback: Copy image URL to clipboard
         console.log('📋 Web Share API not available, copying URL to clipboard');
         const imageUrl = getImageUrl(pkg.photoUrl);
-        await navigator.clipboard.writeText(imageUrl);
-        alert('Image URL copied to clipboard!');
+        
+        // Use modern Clipboard API if available
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(imageUrl);
+          alert('✅ Image URL copied to clipboard!');
+        } else {
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = imageUrl;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          document.body.appendChild(textArea);
+          textArea.select();
+          try {
+            document.execCommand('copy');
+            alert('✅ Image URL copied to clipboard!');
+          } catch (err) {
+            alert('❌ Failed to copy URL. Please copy manually: ' + imageUrl);
+          }
+          document.body.removeChild(textArea);
+        }
       }
     } catch (error: any) {
       // User cancelled or error occurred

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Camera, Package as PackageIcon, CheckCircle, Wifi, WifiOff, Clock, MapPin, ChevronRight, Settings as SettingsIcon } from 'lucide-react';
+import { TrendingUp, Camera, Package as PackageIcon, CheckCircle, Wifi, WifiOff, Clock, MapPin, ChevronRight, Settings as SettingsIcon, User } from 'lucide-react';
 import { socket } from '../lib/socket';
 import * as api from '../lib/api';
 import { MoodWidget } from '../components/MoodWidget';
 import { getImageUrl, getPlaceholderImage } from '../lib/images';
 import { notificationService } from '../services/notificationService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Stats {
   totalPackages: number;
@@ -16,6 +17,7 @@ interface Stats {
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [devices, setDevices] = useState<api.Device[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalPackages: 0,
@@ -117,11 +119,23 @@ export function Dashboard() {
       {/* Page Header - Better spacing for all devices */}
       <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-6 md:p-8 lg:p-10 animate-fade-in-down">
         <div className="max-w-7xl mx-auto">
+          {/* Greeting with User Name */}
+          {user?.name && (
+            <div className="flex items-center space-x-3 mb-3 animate-slide-in-left">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <User className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-white/80 text-sm font-medium">Welcome back,</p>
+                <h2 className="text-2xl font-bold text-white">{user.name}</h2>
+              </div>
+            </div>
+          )}
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 animate-slide-in-left">
             Dashboard
           </h1>
           <p className="text-white/90 text-sm md:text-base animate-fade-in-up stagger-1">
-            Welcome back! Here's your overview
+            {user?.name ? "Here's your overview" : "Welcome back! Here's your overview"}
           </p>
         </div>
       </div>

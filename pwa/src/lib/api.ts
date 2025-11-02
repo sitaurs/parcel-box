@@ -60,27 +60,28 @@ export interface PaginatedResponse<T> {
 
 class ApiClient {
   private baseUrl: string;
-  private token?: string;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
-  }
-
-  setToken(token: string) {
-    this.token = token;
   }
 
   private async fetch<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    // Always get fresh token from localStorage
+    const token = localStorage.getItem('token');
+    
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
     };
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else if (!endpoint.includes('/login')) {
+      // Only throw error for non-login endpoints
+      throw new Error('Missing authorization header');
     }
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
