@@ -116,47 +116,110 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-      {/* Ultra Clean Header - Pure, No Background, No Border */}
-      <div className="px-5 pt-8 pb-6">
-        <div className="flex items-center justify-between">
-          {/* User Greeting with Smooth Animation */}
-          <div className="space-y-1">
-            <p className="text-gray-400 dark:text-gray-500 text-xs font-medium tracking-wide uppercase animate-fade-in">
-              {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}
-            </p>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white animate-slide-in-left">
-              {user?.name || 'User'}
-            </h1>
+      {/* Modern Premium Header with Gradient Background */}
+      <div className="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 dark:from-blue-900 dark:via-indigo-900 dark:to-purple-900 overflow-hidden">
+        {/* Decorative Background Elements */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl transform translate-x-32 -translate-y-32"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-300 rounded-full blur-3xl transform -translate-x-24 translate-y-24"></div>
+        </div>
+
+        <div className="relative px-5 pt-8 pb-6">
+          {/* Top Row - User Info & Actions */}
+          <div className="flex items-center justify-between mb-6">
+            {/* User Avatar & Greeting */}
+            <div className="flex items-center space-x-3 animate-fade-in">
+              <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/30 flex items-center justify-center shadow-lg">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white font-bold text-xl shadow-inner">
+                  {user?.username?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              </div>
+              <div>
+                <p className="text-white/80 text-xs font-medium">
+                  Hello, {user?.username || 'User'}
+                </p>
+                <p className="text-white text-sm font-semibold">
+                  Today {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                </p>
+              </div>
+            </div>
+
+            {/* Notification & Settings Icons */}
+            <div className="flex items-center space-x-2 animate-fade-in">
+              <button 
+                onClick={() => navigate('/settings')}
+                className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all active:scale-95"
+              >
+                <SettingsIcon className="w-5 h-5 text-white" />
+              </button>
+            </div>
           </div>
 
-          {/* Status Indicators - Right Side */}
-          <div className="flex flex-col items-end space-y-2 animate-fade-in">
-            {/* Connection Status */}
-            <div className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full transition-all ${
+          {/* Greeting Text */}
+          <div className="mb-5 animate-slide-in-left">
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
+              {new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'}
+            </h1>
+            <p className="text-white/70 text-sm">
+              {connected ? '✨ Everything is running smoothly' : '⚠️ System offline'}
+            </p>
+          </div>
+
+          {/* Stats Cards Row - Inline with Header */}
+          <div className="grid grid-cols-3 gap-3 animate-fade-in">
+            {/* Total Packages */}
+            <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-400/30 flex items-center justify-center">
+                  <PackageIcon className="w-4 h-4 text-white" />
+                </div>
+              </div>
+              <p className="text-white/70 text-[10px] font-medium mb-0.5">Total</p>
+              <p className="text-white text-xl font-bold">{stats.totalPackages}</p>
+            </div>
+
+            {/* Today's Packages */}
+            <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 rounded-xl bg-green-400/30 flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-white" />
+                </div>
+              </div>
+              <p className="text-white/70 text-[10px] font-medium mb-0.5">Today</p>
+              <p className="text-white text-xl font-bold">{stats.todayPackages}</p>
+            </div>
+
+            {/* Captured Photos */}
+            <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 rounded-xl bg-purple-400/30 flex items-center justify-center">
+                  <Camera className="w-4 h-4 text-white" />
+                </div>
+              </div>
+              <p className="text-white/70 text-[10px] font-medium mb-0.5">Photos</p>
+              <p className="text-white text-xl font-bold">{stats.capturedPackages}</p>
+            </div>
+          </div>
+
+          {/* Connection Status Badge - Bottom Right */}
+          <div className="absolute bottom-4 right-4 animate-fade-in">
+            <div className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border shadow-lg transition-all ${
               connected 
-                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                ? 'bg-green-500/20 border-green-400/30 text-white' 
+                : 'bg-red-500/20 border-red-400/30 text-white'
             }`}>
               {connected ? (
                 <>
-                  <Wifi className="w-3.5 h-3.5" />
+                  <div className="w-1.5 h-1.5 bg-green-300 rounded-full animate-pulse"></div>
                   <span className="text-xs font-semibold">Online</span>
                 </>
               ) : (
                 <>
-                  <WifiOff className="w-3.5 h-3.5" />
+                  <div className="w-1.5 h-1.5 bg-red-300 rounded-full"></div>
                   <span className="text-xs font-semibold">Offline</span>
                 </>
               )}
             </div>
-
-            {/* Today's Packages Badge */}
-            {stats.todayPackages > 0 && (
-              <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full">
-                <PackageIcon className="w-3.5 h-3.5" />
-                <span className="text-xs font-bold">{stats.todayPackages} today</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
