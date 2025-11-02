@@ -115,112 +115,34 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-      {/* Modern Premium Header with Gradient Background */}
-      <div className="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 dark:from-blue-900 dark:via-indigo-900 dark:to-purple-900 overflow-hidden">
-        {/* Decorative Background Elements */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl transform translate-x-32 -translate-y-32"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-300 rounded-full blur-3xl transform -translate-x-24 translate-y-24"></div>
-        </div>
-
-        <div className="relative px-5 pt-8 pb-6">
-          {/* Top Row - User Info & Actions */}
-          <div className="flex items-center justify-between mb-6">
-            {/* User Avatar & Greeting */}
-            <div className="flex items-center space-x-3 animate-fade-in">
-              <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/30 flex items-center justify-center shadow-lg">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white font-bold text-xl shadow-inner">
-                  {user?.username?.charAt(0).toUpperCase() || 'U'}
-                </div>
-              </div>
-              <div>
-                <p className="text-white/80 text-xs font-medium">
-                  Hello, {user?.username || 'User'}
-                </p>
-                <p className="text-white text-sm font-semibold">
-                  Today {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                </p>
-              </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Simple Clean Header - Like Fitness App Reference */}
+      <div className="bg-white dark:bg-gray-800 px-5 pt-6 pb-4">
+        <div className="flex items-center justify-between">
+          {/* User Avatar & Greeting */}
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
+              {user?.username?.charAt(0).toUpperCase() || 'U'}
             </div>
-
-            {/* Notification & Settings Icons */}
-            <div className="flex items-center space-x-2 animate-fade-in">
-              <button 
-                onClick={() => navigate('/settings')}
-                className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all active:scale-95"
-              >
-                <SettingsIcon className="w-5 h-5 text-white" />
-              </button>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Hello, {user?.username || 'User'}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 font-medium">
+                Today {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+              </p>
             </div>
           </div>
 
-          {/* Greeting Text */}
-          <div className="mb-5 animate-slide-in-left">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
-              {new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'}
-            </h1>
-            <p className="text-white/70 text-sm">
-              {connected ? '✨ Everything is running smoothly' : '⚠️ System offline'}
-            </p>
-          </div>
-
-          {/* Stats Cards Row - Inline with Header */}
-          <div className="grid grid-cols-3 gap-3 animate-fade-in">
-            {/* Total Packages */}
-            <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-lg">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 rounded-xl bg-blue-400/30 flex items-center justify-center">
-                  <PackageIcon className="w-4 h-4 text-white" />
-                </div>
-              </div>
-              <p className="text-white/70 text-[10px] font-medium mb-0.5">Total</p>
-              <p className="text-white text-xl font-bold">{stats.totalPackages}</p>
-            </div>
-
-            {/* Today's Packages */}
-            <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-lg">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 rounded-xl bg-green-400/30 flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-white" />
-                </div>
-              </div>
-              <p className="text-white/70 text-[10px] font-medium mb-0.5">Today</p>
-              <p className="text-white text-xl font-bold">{stats.todayPackages}</p>
-            </div>
-
-            {/* Captured Photos */}
-            <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl p-3 shadow-lg">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 rounded-xl bg-purple-400/30 flex items-center justify-center">
-                  <Camera className="w-4 h-4 text-white" />
-                </div>
-              </div>
-              <p className="text-white/70 text-[10px] font-medium mb-0.5">Photos</p>
-              <p className="text-white text-xl font-bold">{stats.capturedPackages}</p>
-            </div>
-          </div>
-
-          {/* Connection Status Badge - Bottom Right */}
-          <div className="absolute bottom-4 right-4 animate-fade-in">
-            <div className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border shadow-lg transition-all ${
-              connected 
-                ? 'bg-green-500/20 border-green-400/30 text-white' 
-                : 'bg-red-500/20 border-red-400/30 text-white'
-            }`}>
-              {connected ? (
-                <>
-                  <div className="w-1.5 h-1.5 bg-green-300 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-semibold">Online</span>
-                </>
-              ) : (
-                <>
-                  <div className="w-1.5 h-1.5 bg-red-300 rounded-full"></div>
-                  <span className="text-xs font-semibold">Offline</span>
-                </>
-              )}
-            </div>
-          </div>
+          {/* Search Icon */}
+          <button 
+            onClick={() => navigate('/packages')}
+            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-95"
+          >
+            <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
         </div>
       </div>
 
