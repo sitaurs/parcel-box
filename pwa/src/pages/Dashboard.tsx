@@ -116,19 +116,19 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Simple Clean Header - Like Fitness App Reference */}
-      <div className="bg-white dark:bg-gray-800 px-5 pt-6 pb-4">
+      {/* Glass Transparent Header with Better Spacing */}
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 px-6 pt-10 pb-6 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           {/* User Avatar & Greeting */}
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
+          <div className="flex items-center space-x-4">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
               {user?.username?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-base font-semibold text-gray-800 dark:text-gray-200">
                 Hello, {user?.username || 'User'}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 font-medium">
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
                 Today {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
               </p>
             </div>
@@ -137,7 +137,7 @@ export function Dashboard() {
           {/* Search Icon */}
           <button 
             onClick={() => navigate('/packages')}
-            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-95"
+            className="w-12 h-12 rounded-full bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-95 shadow-md"
           >
             <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -146,73 +146,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="px-4 pb-6 space-y-5">
-        {/* Quick Actions - Prominent Cards */}
-        <div className="grid grid-cols-2 gap-3 animate-fade-in">
-          <button
-            onClick={() => navigate('/packages')}
-            className="p-4 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white aspect-square flex flex-col items-center justify-center"
-          >
-            <div className="flex flex-col items-center text-center space-y-2">
-              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                <PackageIcon className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">Packages</p>
-                <p className="text-xs text-white/80">{stats.totalPackages} total</p>
-              </div>
-            </div>
-          </button>
-
-          <button
-            onClick={() => navigate('/gallery')}
-            className="p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white aspect-square flex flex-col items-center justify-center"
-          >
-            <div className="flex flex-col items-center text-center space-y-2">
-              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                <ImageIcon className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">Gallery</p>
-                <p className="text-xs text-white/80">{stats.capturedPackages} photos</p>
-              </div>
-            </div>
-          </button>
-
-          <button
-            onClick={() => navigate('/notifications')}
-            className="p-4 bg-gradient-to-br from-orange-500 to-red-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white aspect-square flex flex-col items-center justify-center"
-          >
-            <div className="flex flex-col items-center text-center space-y-2">
-              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                <Bell className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">Alerts</p>
-                <p className="text-xs text-white/80">Notifications</p>
-              </div>
-            </div>
-          </button>
-
-          {user?.role === 'admin' && (
-            <button
-              onClick={() => navigate('/admin/users')}
-              className="p-4 bg-gradient-to-br from-red-500 to-orange-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white aspect-square flex flex-col items-center justify-center"
-            >
-              <div className="flex flex-col items-center text-center space-y-2">
-                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                  <Shield className="w-7 h-7" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm">Admin</p>
-                  <p className="text-xs text-white/80">Manage Users</p>
-                </div>
-              </div>
-            </button>
-          )}
-        </div>
-
-      <div className="px-4 pb-6 space-y-5">
+      <div className="px-6 pt-6 pb-6 space-y-5">
         {/* Connection Status - Smooth Animated Card */}
         <div className={`p-4 rounded-3xl flex items-center space-x-3 transition-all duration-500 transform hover:scale-105 ${
           connected 
