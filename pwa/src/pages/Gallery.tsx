@@ -85,16 +85,23 @@ export function Gallery() {
       } else {
         // Fallback: Copy image URL to clipboard
         console.log('📋 Web Share API not available, copying URL to clipboard');
-        const imageUrl = getImageUrl(pkg.photoUrl);
+        
+        // Build FULL URL with API base (for sharing outside app)
+        const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
+        const fullImageUrl = pkg.photoUrl.startsWith('http') 
+          ? pkg.photoUrl 
+          : `${apiUrl}${pkg.photoUrl}`;
+        
+        console.log('🌐 Full image URL:', fullImageUrl);
         
         // Use modern Clipboard API if available
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(imageUrl);
+          await navigator.clipboard.writeText(fullImageUrl);
           alert('✅ Image URL copied to clipboard!');
         } else {
           // Fallback for older browsers
           const textArea = document.createElement('textarea');
-          textArea.value = imageUrl;
+          textArea.value = fullImageUrl;
           textArea.style.position = 'fixed';
           textArea.style.left = '-999999px';
           document.body.appendChild(textArea);

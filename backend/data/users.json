@@ -9,6 +9,26 @@
       "pin": "$2a$10$lde/xBSL80JgOW0Znwdg/ORdI4RZ/WCSdAE9AFGIQrfujh3fu4LxW",
       "createdAt": "2025-10-27T13:35:55.456Z",
       "updatedAt": "2025-11-02T02:34:37.586Z"
+    },
+    {
+      "id": "user-1762052441530-fvmiuc7mn",
+      "username": "test",
+      "password": "$2a$10$jxbQ2T4TvnWTs2snI88ikeE1FmirX6OuOt9d3dsfaYy1SCheEAUQq",
+      "role": "user",
+      "name": "test",
+      "pin": null,
+      "createdAt": "2025-11-02T03:00:41.539Z",
+      "updatedAt": "2025-11-02T03:00:41.540Z"
+    },
+    {
+      "id": "user-1762086384749-c4dzriuvq",
+      "username": "test2",
+      "password": "$2a$10$tyRlDFkL4wtrOQQPlJUSMOfeeRiCKfibo6H5m8c9PcwIRRR.ghnRi",
+      "role": "user",
+      "name": "test",
+      "pin": null,
+      "createdAt": "2025-11-02T12:26:24.749Z",
+      "updatedAt": "2025-11-02T12:26:24.752Z"
     }
   ]
 }

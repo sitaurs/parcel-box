@@ -115,55 +115,60 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Page Header - Better spacing for all devices */}
-      <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-6 md:p-8 lg:p-10 animate-fade-in-down">
-        <div className="max-w-7xl mx-auto">
-          {/* Greeting with User Name */}
-          {user?.name && (
-            <div className="flex items-center space-x-3 mb-3 animate-slide-in-left">
-              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <User className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-white/80 text-sm font-medium">Welcome back,</p>
-                <h2 className="text-2xl font-bold text-white">{user.name}</h2>
-              </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Clean Mobile Header - No hamburger, just greeting */}
+      <div className="bg-white dark:bg-gray-800 px-5 pt-6 pb-4 shadow-sm">
+        <div className="flex items-center justify-between mb-1">
+          {/* User Greeting */}
+          <div>
+            <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">Good morning</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {user?.name || 'User'}
+            </h1>
+          </div>
+          
+          {/* Settings Icon Only (Admin in separate menu) */}
+          <button
+            onClick={() => navigate('/settings')}
+            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            <SettingsIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+          </button>
+        </div>
+      </div>
+
+      <div className="px-4 py-5 space-y-5">
+      <div className="px-4 py-5 space-y-5">
+        {/* Connection Status - Clean Card */}
+        <div className={`p-4 rounded-2xl flex items-center space-x-3 ${
+          connected 
+            ? 'bg-green-50 dark:bg-green-900/20' 
+            : 'bg-red-50 dark:bg-red-900/20'
+        }`}>
+          {connected ? (
+            <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <Wifi className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <WifiOff className="w-5 h-5 text-red-600 dark:text-red-400" />
             </div>
           )}
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 animate-slide-in-left">
-            Dashboard
-          </h1>
-          <p className="text-white/90 text-sm md:text-base animate-fade-in-up stagger-1">
-            {user?.name ? "Here's your overview" : "Welcome back! Here's your overview"}
-          </p>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-6">
-        {/* Connection Status Banner */}
-        <div className={`flex items-center justify-between p-4 md:p-6 rounded-2xl lg:rounded-3xl animate-fade-in-up ${
-          connected 
-            ? 'bg-gradient-to-r from-green-500 to-emerald-500 animate-pulse-glow' 
-            : 'bg-gradient-to-r from-red-500 to-pink-500 animate-shake'
-        } text-white shadow-lg hover:shadow-2xl transition-all`}>
-        <div className="flex items-center space-x-3">
-          {connected ? <Wifi className="w-5 h-5 animate-bounce-slow" /> : <WifiOff className="w-5 h-5" />}
-          <div>
-            <p className="font-bold text-sm">{connected ? 'System Online' : 'System Offline'}</p>
-            <p className="text-xs opacity-90">Real-time monitoring {connected ? 'active' : 'inactive'}</p>
+          <div className="flex-1">
+            <p className={`font-semibold text-sm ${connected ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>
+              {connected ? 'System Online' : 'System Offline'}
+            </p>
+            <p className={`text-xs ${connected ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              Real-time monitoring {connected ? 'active' : 'inactive'}
+            </p>
           </div>
         </div>
-      </div>
 
-      {/* Mood Widget */}
-      <div className="animate-scale-in-center">
+        {/* Mood Widget */}
         <MoodWidget />
-      </div>
 
-      {/* Stats Cards - Horizontal Scroll on Mobile */}
-      <div className="overflow-x-auto -mx-4 px-4 pb-2">
-        <div className="flex space-x-3 min-w-max md:grid md:grid-cols-4 md:gap-4">
+        {/* Stats Cards - Modern Grid */}
+        <div className="grid grid-cols-2 gap-3">
           <StatsCard
             icon={PackageIcon}
             value={stats.totalPackages}
@@ -344,14 +349,12 @@ interface StatsCardProps {
 
 function StatsCard({ icon: Icon, value, label, iconBg, iconColor, delay = '' }: StatsCardProps) {
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 min-w-[140px] md:min-w-0 animate-fade-in-up ${delay} hover:shadow-lg hover:scale-105 hover-glow transition-all cursor-pointer`}>
-      <div className="flex items-center justify-between mb-3">
-        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center animate-bounce-in ${delay}`}>
-          <Icon className={`w-5 h-5 ${iconColor} group-hover:scale-110 transition-transform`} />
-        </div>
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+      <div className={`w-12 h-12 rounded-xl ${iconBg} flex items-center justify-center mb-3`}>
+        <Icon className={`w-6 h-6 ${iconColor}`} />
       </div>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{value}</p>
-      <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
+      <p className="text-2xl font-bold text-gray-900 dark:text-white mb-0.5">{value}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</p>
     </div>
   );
 }

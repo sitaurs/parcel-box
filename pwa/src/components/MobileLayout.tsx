@@ -125,13 +125,13 @@ export function MobileLayout({ children }: MobileLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Desktop Sidebar - Only show on large screens (1024px+) - z-30 */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col animate-slide-in-left z-30">
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col z-30">
         <div className="flex flex-col flex-grow bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto shadow-2xl">
           {/* Logo */}
-          <div className="flex items-center justify-center h-20 px-6 border-b border-gray-200 dark:border-gray-700 animate-fade-in-down">
+          <div className="flex items-center justify-center h-20 px-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg animate-bounce-in hover:animate-wiggle">
-                <Package className="w-7 h-7 text-white animate-pulse-glow" />
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <Package className="w-7 h-7 text-white" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">Smart Parcel</h1>
@@ -145,15 +145,35 @@ export function MobileLayout({ children }: MobileLayoutProps) {
             {navItems.map((item) => (
               <SidebarNavLink key={item.path} item={item} />
             ))}
+            {/* Admin Link for Desktop */}
+            {user?.role === 'admin' && (
+              <NavLink
+                to="/admin/users"
+                className={({ isActive }) =>
+                  `group flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-lg scale-105'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Shield className={`w-5 h-5 mr-3 transition-transform duration-300 ${isActive ? '' : 'group-hover:scale-110'}`} />
+                    <span className="font-semibold">Admin</span>
+                  </>
+                )}
+              </NavLink>
+            )}
           </nav>
 
           {/* Bottom Section */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-3 animate-fade-in-up">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
             {/* Connection Status */}
-            <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl transition-all duration-300 hover:shadow-md">
+            <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Status</span>
-              <span className={`flex items-center text-sm font-semibold transition-all duration-300 ${connected ? 'text-green-600 dark:text-green-400 animate-pulse-glow' : 'text-red-600 dark:text-red-400'}`}>
-                {connected ? <Wifi className="w-4 h-4 mr-1 animate-bounce-slow" /> : <WifiOff className="w-4 h-4 mr-1 animate-shake" />}
+              <span className={`flex items-center text-sm font-semibold ${connected ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {connected ? <Wifi className="w-4 h-4 mr-1" /> : <WifiOff className="w-4 h-4 mr-1" />}
                 {connected ? 'Online' : 'Offline'}
               </span>
             </div>
@@ -168,7 +188,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
       </aside>
 
       {/* Tablet Top Bar - Only show on medium screens (768px-1023px) - z-40 */}
-      <div className="hidden md:flex lg:hidden sticky top-0 z-40 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm animate-slide-in-down">
+      <div className="hidden md:flex lg:hidden sticky top-0 z-40 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="flex items-center justify-between w-full px-6 py-4">
           <div className="flex items-center space-x-4 animate-fade-in-down">
             <div className={`w-12 h-12 bg-gradient-to-br ${currentPage?.color || 'from-blue-500 to-purple-600'} rounded-2xl flex items-center justify-center shadow-lg animate-bounce-in hover:animate-wiggle`}>
@@ -211,111 +231,68 @@ export function MobileLayout({ children }: MobileLayoutProps) {
         </div>
       </div>
 
-      {/* Mobile Top Bar - Only show on small screens (<768px) - z-40 */}
-      <div className="md:hidden sticky top-0 z-40 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm animate-slide-in-down">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center space-x-3 animate-fade-in-left">
-            <div className={`w-10 h-10 bg-gradient-to-br ${currentPage?.color || 'from-blue-500 to-purple-600'} rounded-xl flex items-center justify-center shadow-md animate-scale-in-center hover:animate-wiggle`}>
-              {currentPage ? <currentPage.icon className="w-5 h-5 text-white animate-pulse-glow" /> : <Package className="w-5 h-5 text-white" />}
-            </div>
-            <div>
-              <h1 className="text-base font-bold text-gray-900 dark:text-white">
-                {currentPage?.label || 'Smart Parcel'}
-              </h1>
-              <p className={`text-xs font-medium ${connected ? 'text-green-600 animate-pulse-glow' : 'text-red-600 animate-shake'}`}>
-                {connected ? '● Online' : '● Offline'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center transition-all ripple hover:scale-110 active:scale-95 animate-fade-in-right hover:shadow-lg"
-          >
-            <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400 hover:rotate-90 transition-transform duration-300" />
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Sidebar Overlay - z-50 (above everything except modals) */}
-      {sidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-50 animate-fade-in">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setSidebarOpen(false)}
-          />
-          <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85%] bg-white dark:bg-gray-800 shadow-2xl animate-slide-in-right">
-            <div className="flex flex-col h-full">
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 animate-fade-in-down">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Menu</h2>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-700 transition-all ripple hover:scale-110 active:scale-95 hover:rotate-90 duration-300"
-                >
-                  <X className="w-5 h-5 animate-rotate-in" />
-                </button>
-              </div>
-
-              {/* User Info */}
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 animate-fade-in-down stagger-1">
-                <UserInfo variant="mobile" />
-              </div>
-
-              {/* Navigation */}
-              <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-                {sidebarItems.map((item) => (
-                  <SidebarNavLink key={item.path} item={item} onClick={() => setSidebarOpen(false)} />
-                ))}
-              </nav>
-
-              {/* Actions */}
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700 animate-fade-in-up">
-                <ActionButtons variant="vertical" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content - Consistent padding to prevent content from being hidden */}
-      <main className="lg:pl-72 min-h-screen pb-20 lg:pb-0">
-        <div className="animate-fade-in-up">
+      {/* Mobile - NO HEADER, NO HAMBURGER - Pure App Experience */}
+      
+      {/* Main Content - Full height for mobile, with sidebar offset for desktop */}
+      <main className="lg:pl-72">
+        <div className="pb-20 md:pb-0">
           {children}
         </div>
       </main>
 
-      {/* Bottom Navigation - Mobile & Tablet only (<1024px) - z-45 - FIXED 5 ICONS */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border-t border-gray-200 dark:border-gray-700 z-45 safe-area-bottom animate-slide-in-up shadow-2xl">
+      {/* Mobile Bottom Navigation - Only show on small/medium screens (<1024px) - z-50 */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50 safe-area-bottom shadow-2xl">
         <div className="grid grid-cols-5 h-16">
           {navItems.map((item, index) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center space-y-0.5 transition-all duration-300 animate-fade-in-up stagger-${index + 1} ${
+                `flex flex-col items-center justify-center space-y-0.5 transition-all ${
                   isActive
                     ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-500 dark:text-gray-400'
+                    : 'text-gray-600 dark:text-gray-400'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <div className={`relative transition-all duration-300 ${isActive ? 'scale-110 animate-bounce-in' : 'hover:scale-110'}`}>
-                    <item.icon className={`w-6 h-6 ${isActive ? 'animate-pulse-glow' : ''}`} />
-                    {isActive && (
-                      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-ping" />
-                    )}
-                  </div>
-                  <span className={`text-[10px] font-medium transition-all duration-300 truncate max-w-full px-0.5 ${isActive ? 'font-bold' : ''}`}>
-                    {item.label}
-                  </span>
+                  <item.icon className={`w-6 h-6 ${isActive ? 'scale-110' : ''}`} />
+                  <span className="text-[10px] font-medium truncate px-1">{item.label}</span>
                 </>
               )}
             </NavLink>
           ))}
         </div>
       </nav>
+
+      {/* Admin & Settings FAB - Floating Action Buttons for Mobile */}
+      {user?.role === 'admin' && (
+        <div className="md:hidden fixed bottom-20 right-4 z-40 flex flex-col space-y-3">
+          <button
+            onClick={() => navigate('/admin/users')}
+            className="w-14 h-14 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+          >
+            <Shield className="w-6 h-6" />
+          </button>
+        </div>
+      )}
+      
+      {/* Logout & Theme FAB - Bottom Right */}
+      <div className="md:hidden fixed bottom-20 left-4 z-40 flex flex-col space-y-3">
+        <button
+          onClick={toggleTheme}
+          className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+        >
+          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
+        <button
+          onClick={handleLogout}
+          className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
+      </div>
     </div>
   );
 }
