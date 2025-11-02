@@ -60,11 +60,13 @@ export default function AdminUsers() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setError(''); // Clear previous errors
       const response = await api.get('/admin/users');
       setUsers(response.data);
-      setError('');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load users');
+      console.error('Failed to load users:', err);
+      setError(err.message || err.response?.data?.error || 'Failed to load users');
+      setUsers([]); // Set empty array on error to prevent undefined
     } finally {
       setLoading(false);
     }
@@ -74,8 +76,9 @@ export default function AdminUsers() {
     try {
       const response = await api.get('/admin/stats');
       setStats(response.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load stats:', err);
+      // Don't show stats error to user, just log it
     }
   };
 
@@ -284,10 +287,12 @@ export default function AdminUsers() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
               <p className="mt-4 text-gray-600 dark:text-gray-400">Loading users...</p>
             </div>
-          ) : users.length === 0 ? (
+          ) : !users || users.length === 0 ? (
             <div className="p-8 text-center">
               <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">No users found</p>
+              <p className="text-gray-600 dark:text-gray-400">
+                {error || 'No users found'}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
