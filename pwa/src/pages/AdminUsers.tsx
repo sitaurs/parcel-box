@@ -189,8 +189,8 @@ export default function AdminUsers() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -215,65 +215,80 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Clickable */}
       {stats && (
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <button
+              onClick={() => {/* Already on Users page */}}
+              className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-lg transition-all active:scale-95"
+            >
               <div className="flex items-center space-x-3">
                 <Users className="w-8 h-8 text-blue-500" />
-                <div>
+                <div className="text-left">
                   <p className="text-sm text-gray-600 dark:text-gray-400">Users</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {stats.totalUsers}
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            </button>
+            <button
+              onClick={() => navigate('/packages')}
+              className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-lg transition-all active:scale-95"
+            >
               <div className="flex items-center space-x-3">
                 <Package className="w-8 h-8 text-green-500" />
-                <div>
+                <div className="text-left">
                   <p className="text-sm text-gray-600 dark:text-gray-400">Packages</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {stats.totalPackages}
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            </button>
+            <button
+              onClick={() => navigate('/devices')}
+              className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-lg transition-all active:scale-95"
+            >
               <div className="flex items-center space-x-3">
                 <Lock className="w-8 h-8 text-purple-500" />
-                <div>
+                <div className="text-left">
                   <p className="text-sm text-gray-600 dark:text-gray-400">Devices</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {stats.totalDevices}
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            </button>
+            <button
+              onClick={() => navigate('/events')}
+              className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-lg transition-all active:scale-95"
+            >
               <div className="flex items-center space-x-3">
                 <UserCog className="w-8 h-8 text-orange-500" />
-                <div>
+                <div className="text-left">
                   <p className="text-sm text-gray-600 dark:text-gray-400">Events</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {stats.totalEvents}
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            </button>
+            <button
+              onClick={() => navigate('/notifications')}
+              className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-lg transition-all active:scale-95"
+            >
               <div className="flex items-center space-x-3">
                 <Bell className="w-8 h-8 text-red-500" />
-                <div>
+                <div className="text-left">
                   <p className="text-sm text-gray-600 dark:text-gray-400">Notifications</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {stats.totalNotifications}
                   </p>
                 </div>
               </div>
-            </div>
+            </button>
           </div>
         </div>
       )}

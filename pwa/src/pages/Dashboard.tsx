@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Camera, Package as PackageIcon, CheckCircle, Wifi, WifiOff, Clock, MapPin, ChevronRight, Settings as SettingsIcon, User } from 'lucide-react';
+import { TrendingUp, Camera, Package as PackageIcon, CheckCircle, Wifi, WifiOff, Clock, MapPin, ChevronRight, Settings as SettingsIcon, User, Shield, MessageCircle, Bell, Image as ImageIcon } from 'lucide-react';
 import { socket } from '../lib/socket';
 import * as api from '../lib/api';
 import { MoodWidget } from '../components/MoodWidget';
@@ -122,7 +122,7 @@ export function Dashboard() {
           {/* User Greeting with Smooth Animation */}
           <div className="space-y-1">
             <p className="text-gray-400 dark:text-gray-500 text-xs font-medium tracking-wide uppercase animate-fade-in">
-              Good morning
+              {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}
             </p>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white animate-slide-in-left">
               {user?.name || 'User'}
@@ -132,6 +132,71 @@ export function Dashboard() {
       </div>
 
       <div className="px-4 pb-6 space-y-5">
+        {/* Quick Actions - Prominent Cards */}
+        <div className="grid grid-cols-2 gap-3 animate-fade-in">
+          <button
+            onClick={() => navigate('/packages')}
+            className="p-4 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white"
+          >
+            <div className="flex flex-col items-center text-center space-y-2">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                <PackageIcon className="w-7 h-7" />
+              </div>
+              <div>
+                <p className="font-bold text-sm">Packages</p>
+                <p className="text-xs text-white/80">{stats.totalPackages} total</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => navigate('/gallery')}
+            className="p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white"
+          >
+            <div className="flex flex-col items-center text-center space-y-2">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                <ImageIcon className="w-7 h-7" />
+              </div>
+              <div>
+                <p className="font-bold text-sm">Gallery</p>
+                <p className="text-xs text-white/80">{stats.capturedPackages} photos</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => navigate('/notifications')}
+            className="p-4 bg-gradient-to-br from-orange-500 to-red-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white"
+          >
+            <div className="flex flex-col items-center text-center space-y-2">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                <Bell className="w-7 h-7" />
+              </div>
+              <div>
+                <p className="font-bold text-sm">Alerts</p>
+                <p className="text-xs text-white/80">Notifications</p>
+              </div>
+            </div>
+          </button>
+
+          {user?.role === 'admin' && (
+            <button
+              onClick={() => navigate('/admin/users')}
+              className="p-4 bg-gradient-to-br from-red-500 to-orange-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white"
+            >
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                  <Shield className="w-7 h-7" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Admin</p>
+                  <p className="text-xs text-white/80">Manage Users</p>
+                </div>
+              </div>
+            </button>
+          )}
+        </div>
+
       <div className="px-4 pb-6 space-y-5">
         {/* Connection Status - Smooth Animated Card */}
         <div className={`p-4 rounded-3xl flex items-center space-x-3 transition-all duration-500 transform hover:scale-105 ${

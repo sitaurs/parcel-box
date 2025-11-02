@@ -25,8 +25,12 @@ export function Settings() {
   const [settings, setSettings] = useState<SettingsData>({
     appearance: { theme: theme as 'light' | 'dark' | 'auto' }
   });
+  const [originalSettings, setOriginalSettings] = useState<SettingsData>({
+    appearance: { theme: theme as 'light' | 'dark' | 'auto' }
+  });
   const [snackbar, setSnackbar] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Check if device is mobile
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
@@ -37,12 +41,27 @@ export function Settings() {
     loadSettings();
   }, []);
 
+  // Check for changes
+  useEffect(() => {
+    const changed = JSON.stringify(settings) !== JSON.stringify(originalSettings);
+    setHasChanges(changed);
+  }, [settings, originalSettings]);
+
   async function loadSettings() {
     try {
       const stored = localStorage.getItem('settings');
       if (stored) {
         const data = JSON.parse(stored);
-        setSettings({ ...settings, ...data });
+        const loadedSettings = { ...settings, ...data };
+        setSettings(loadedSettings);
+        setOriginalSettings(loadedSettings);
+      } else {
+        // Set initial settings from current theme
+        const initialSettings = {
+          appearance: { theme: theme as 'light' | 'dark' | 'auto' }
+        };
+        setSettings(initialSettings);
+        setOriginalSettings(initialSettings);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -60,6 +79,10 @@ export function Settings() {
       } else {
         setTheme(settings.appearance.theme);
       }
+
+      // Update original settings to match current
+      setOriginalSettings(settings);
+      setHasChanges(false);
 
       setSnackbar({ message: 'Settings saved!', type: 'success' });
       setTimeout(() => setSnackbar(null), 2000);
@@ -306,16 +329,18 @@ export function Settings() {
         </div>
       </div>
 
-      {/* Save Button - Floating */}
-      <div className="fixed bottom-24 lg:bottom-6 left-4 right-4 lg:left-auto lg:right-6 lg:w-auto z-40">
-        <button
-          onClick={handleSave}
-          className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl shadow-2xl hover:shadow-3xl transition-all transform active:scale-95 flex items-center justify-center space-x-2"
-        >
-          <Check className="w-5 h-5" />
-          <span>Save Changes</span>
-        </button>
-      </div>
+      {/* Save Button - Floating (Only show if changes detected) */}
+      {hasChanges && (
+        <div className="fixed bottom-24 lg:bottom-6 left-4 right-4 lg:left-auto lg:right-6 lg:w-auto z-40 animate-slide-in-up">
+          <button
+            onClick={handleSave}
+            className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl shadow-2xl hover:shadow-3xl transition-all transform active:scale-95 flex items-center justify-center space-x-2"
+          >
+            <Check className="w-5 h-5" />
+            <span>Save Changes</span>
+          </button>
+        </div>
+      )}
 
       {snackbar && (
         <Snackbar
