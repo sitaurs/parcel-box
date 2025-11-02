@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, Moon, Sun, Smartphone, Check, Lock, Key, Sparkles } from 'lucide-react';
+import { ChevronRight, Moon, Sun, Smartphone, Check, Lock, Key, Sparkles, Shield, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useGlassTheme } from '../contexts/GlassThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,9 +16,10 @@ interface SettingsData {
 }
 
 export function Settings() {
+  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const { glassTheme, setGlassTheme } = useGlassTheme();
-  const { updatePin } = useAuth();
+  const { updatePin, user } = useAuth();
   const [showPINSetup, setShowPINSetup] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [settings, setSettings] = useState<SettingsData>({
@@ -29,6 +31,7 @@ export function Settings() {
   // Check if device is mobile
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
   const hasPIN = !!localStorage.getItem('userPin');
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     loadSettings();
@@ -89,38 +92,102 @@ export function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-4">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 animate-fade-in-down">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Settings</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Configure your preferences
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+      {/* Clean Header */}
+      <div className="px-5 pt-8 pb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white animate-slide-in-left">Settings</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 animate-fade-in">
+          Configure your preferences
+        </p>
       </div>
 
-      <div className="p-4 space-y-3">
+      <div className="px-4 pb-6 space-y-4">
+        {/* Quick Actions - Admin & WhatsApp */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Admin Panel - Only for Admins */}
+          {isAdmin && (
+            <button
+              onClick={() => navigate('/admin/users')}
+              className="p-4 bg-gradient-to-br from-red-500 to-orange-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white animate-fade-in"
+              style={{ animationDelay: '100ms' }}
+            >
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                  <Shield className="w-7 h-7" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Admin</p>
+                  <p className="text-xs text-white/80">Manage Users</p>
+                </div>
+              </div>
+            </button>
+          )}
+          
+          {/* WhatsApp */}
+          <button
+            onClick={() => navigate('/whatsapp')}
+            className={`p-4 bg-gradient-to-br from-green-500 to-emerald-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white animate-fade-in ${isAdmin ? '' : 'col-span-2'}`}
+            style={{ animationDelay: isAdmin ? '200ms' : '100ms' }}
+          >
+            <div className="flex flex-col items-center text-center space-y-2">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                <MessageCircle className="w-7 h-7" />
+              </div>
+              <div>
+                <p className="font-bold text-sm">WhatsApp</p>
+                <p className="text-xs text-white/80">Notifications</p>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* Theme Toggle - Quick Access */}
+        <div className="grid grid-cols-3 gap-2 animate-fade-in" style={{ animationDelay: '300ms' }}>
+          {[
+            { value: 'light', label: 'Light', icon: <Sun className="w-5 h-5" /> },
+            { value: 'dark', label: 'Dark', icon: <Moon className="w-5 h-5" /> },
+            { value: 'auto', label: 'Auto', icon: <Smartphone className="w-5 h-5" /> }
+          ].map(option => (
+            <button
+              key={option.value}
+              onClick={() => {
+                updateSetting('appearance', 'theme', option.value);
+                handleSave();
+              }}
+              className={`p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 ${
+                settings.appearance.theme === option.value
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 shadow-sm'
+              }`}
+            >
+              <div className="flex flex-col items-center space-y-1">
+                {option.icon}
+                <span className="text-xs font-semibold">{option.label}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Security Settings */}
+        <div className="space-y-3 animate-fade-in" style={{ animationDelay: '400ms' }}>
         {/* Change Password Card */}
         <button
           onClick={() => setShowChangePassword(true)}
-          className="w-full p-4 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all text-white"
+          className="w-full p-4 bg-white dark:bg-gray-800 rounded-3xl shadow-sm hover:shadow-lg active:scale-95 transition-all"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                <Key className="w-6 h-6" />
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center">
+                <Key className="w-6 h-6 text-white" />
               </div>
               <div className="text-left">
-                <p className="font-semibold">Change Password</p>
-                <p className="text-sm text-white/80">
+                <p className="font-semibold text-gray-900 dark:text-white">Change Password</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Update your account password
                 </p>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-5 h-5 text-gray-400" />
           </div>
         </button>
 
@@ -128,24 +195,25 @@ export function Settings() {
         {isMobile && (
           <button
             onClick={() => setShowPINSetup(true)}
-            className="w-full p-4 bg-gradient-to-r from-green-500 via-teal-500 to-cyan-500 rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all text-white"
+            className="w-full p-4 bg-white dark:bg-gray-800 rounded-3xl shadow-sm hover:shadow-lg active:scale-95 transition-all"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <Lock className="w-6 h-6" />
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center">
+                  <Lock className="w-6 h-6 text-white" />
                 </div>
                 <div className="text-left">
-                  <p className="font-semibold">{hasPIN ? 'Change PIN' : 'Setup PIN'}</p>
-                  <p className="text-sm text-white/80">
+                  <p className="font-semibold text-gray-900 dark:text-white">{hasPIN ? 'Change PIN' : 'Setup PIN'}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {hasPIN ? 'Update your security PIN' : 'Quick unlock with PIN'}
                   </p>
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-5 h-5 text-gray-400" />
             </div>
           </button>
         )}
+        </div>
 
         {/* Appearance Section */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700">

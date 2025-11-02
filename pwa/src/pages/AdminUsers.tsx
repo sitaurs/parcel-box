@@ -61,10 +61,19 @@ export default function AdminUsers() {
     try {
       setLoading(true);
       setError(''); // Clear previous errors
+      console.log('📡 Fetching users from /admin/users...');
       const response = await api.get('/admin/users');
-      setUsers(response.data);
+      console.log('📦 Raw API response:', response);
+      console.log('📦 Response.data:', response.data);
+      
+      // Handle both response.data and response.data.users
+      const usersData = Array.isArray(response.data) ? response.data : (response.data.users || []);
+      console.log('👥 Users array:', usersData);
+      
+      setUsers(usersData);
+      console.log(`✅ Loaded ${usersData.length} users`);
     } catch (err: any) {
-      console.error('Failed to load users:', err);
+      console.error('❌ Failed to load users:', err);
       setError(err.message || err.response?.data?.error || 'Failed to load users');
       setUsers([]); // Set empty array on error to prevent undefined
     } finally {

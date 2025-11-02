@@ -32,7 +32,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
     { path: '/packages', icon: Package, label: 'Packages', color: 'from-purple-500 to-pink-500' },
     { path: '/gallery', icon: ImageIcon, label: 'Gallery', color: 'from-green-500 to-emerald-500' },
     { path: '/notifications', icon: Bell, label: 'Alerts', color: 'from-indigo-500 to-purple-500' },
-    { path: '/whatsapp', icon: MessageCircle, label: 'Chat', color: 'from-yellow-500 to-orange-500' },
+    { path: '/settings', icon: Settings, label: 'Settings', color: 'from-gray-500 to-slate-500' }, // Changed from Chat to Settings
   ];
 
   // Admin link only in sidebar, not bottom nav (too cramped)
@@ -240,59 +240,41 @@ export function MobileLayout({ children }: MobileLayoutProps) {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation - Only show on small/medium screens (<1024px) - z-50 */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50 safe-area-bottom shadow-2xl">
-        <div className="grid grid-cols-5 h-16">
+      {/* Mobile Bottom Navigation - Enhanced with smooth animations */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-700/50 z-50 safe-area-bottom">
+        <div className="grid grid-cols-5 h-16 px-2">
           {navItems.map((item, index) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center space-y-0.5 transition-all ${
+                `flex flex-col items-center justify-center space-y-1 transition-all duration-300 transform hover:scale-110 ${
                   isActive
                     ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 dark:text-gray-400'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <item.icon className={`w-6 h-6 ${isActive ? 'scale-110' : ''}`} />
-                  <span className="text-[10px] font-medium truncate px-1">{item.label}</span>
+                  <div className={`relative transition-all duration-300 ${isActive ? 'scale-110' : ''}`}>
+                    <item.icon className="w-6 h-6" />
+                    {isActive && (
+                      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse" />
+                    )}
+                  </div>
+                  <span className={`text-[10px] font-medium ${isActive ? 'font-bold' : ''}`}>
+                    {item.label}
+                  </span>
                 </>
               )}
             </NavLink>
           ))}
         </div>
       </nav>
-
-      {/* Admin & Settings FAB - Floating Action Buttons for Mobile */}
-      {user?.role === 'admin' && (
-        <div className="md:hidden fixed bottom-20 right-4 z-40 flex flex-col space-y-3">
-          <button
-            onClick={() => navigate('/admin/users')}
-            className="w-14 h-14 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
-          >
-            <Shield className="w-6 h-6" />
-          </button>
-        </div>
-      )}
       
-      {/* Logout & Theme FAB - Bottom Right */}
-      <div className="md:hidden fixed bottom-20 left-4 z-40 flex flex-col space-y-3">
-        <button
-          onClick={toggleTheme}
-          className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
-        >
-          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-        </button>
-        <button
-          onClick={handleLogout}
-          className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
-        >
-          <LogOut className="w-5 h-5" />
-        </button>
-      </div>
+      {/* Admin & Settings Access via Settings Icon in Bottom Nav */}
+      {/* Users can access Admin from Settings page */}
     </div>
   );
 }

@@ -115,47 +115,43 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Clean Mobile Header - No hamburger, just greeting */}
-      <div className="bg-white dark:bg-gray-800 px-5 pt-6 pb-4 shadow-sm">
-        <div className="flex items-center justify-between mb-1">
-          {/* User Greeting */}
-          <div>
-            <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">Good morning</p>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+      {/* Ultra Clean Header - Pure, No Background, No Border */}
+      <div className="px-5 pt-8 pb-6">
+        <div className="flex items-center justify-between">
+          {/* User Greeting with Smooth Animation */}
+          <div className="space-y-1">
+            <p className="text-gray-400 dark:text-gray-500 text-xs font-medium tracking-wide uppercase animate-fade-in">
+              Good morning
+            </p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white animate-slide-in-left">
               {user?.name || 'User'}
             </h1>
           </div>
-          
-          {/* Settings Icon Only (Admin in separate menu) */}
-          <button
-            onClick={() => navigate('/settings')}
-            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-          >
-            <SettingsIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-          </button>
         </div>
       </div>
 
-      <div className="px-4 py-5 space-y-5">
-      <div className="px-4 py-5 space-y-5">
-        {/* Connection Status - Clean Card */}
-        <div className={`p-4 rounded-2xl flex items-center space-x-3 ${
+      <div className="px-4 pb-6 space-y-5">
+      <div className="px-4 pb-6 space-y-5">
+        {/* Connection Status - Smooth Animated Card */}
+        <div className={`p-4 rounded-3xl flex items-center space-x-3 transition-all duration-500 transform hover:scale-105 ${
           connected 
-            ? 'bg-green-50 dark:bg-green-900/20' 
-            : 'bg-red-50 dark:bg-red-900/20'
+            ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20' 
+            : 'bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20'
         }`}>
-          {connected ? (
-            <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <Wifi className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-              <WifiOff className="w-5 h-5 text-red-600 dark:text-red-400" />
-            </div>
-          )}
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${
+            connected 
+              ? 'bg-green-100 dark:bg-green-900/30' 
+              : 'bg-red-100 dark:bg-red-900/30'
+          }`}>
+            {connected ? (
+              <Wifi className="w-6 h-6 text-green-600 dark:text-green-400 animate-pulse" />
+            ) : (
+              <WifiOff className="w-6 h-6 text-red-600 dark:text-red-400" />
+            )}
+          </div>
           <div className="flex-1">
-            <p className={`font-semibold text-sm ${connected ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>
+            <p className={`font-bold text-sm ${connected ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>
               {connected ? 'System Online' : 'System Offline'}
             </p>
             <p className={`text-xs ${connected ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -164,10 +160,12 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Mood Widget */}
-        <MoodWidget />
+        {/* Mood Widget with Animation */}
+        <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <MoodWidget />
+        </div>
 
-        {/* Stats Cards - Modern Grid */}
+        {/* Stats Cards - Smooth Staggered Animation */}
         <div className="grid grid-cols-2 gap-3">
           <StatsCard
             icon={PackageIcon}
@@ -175,7 +173,7 @@ export function Dashboard() {
             label="Total"
             iconBg="bg-blue-100 dark:bg-blue-900/30"
             iconColor="text-blue-600 dark:text-blue-400"
-            delay="stagger-1"
+            delay="200ms"
           />
           <StatsCard
             icon={TrendingUp}
@@ -183,7 +181,7 @@ export function Dashboard() {
             label="Today"
             iconBg="bg-purple-100 dark:bg-purple-900/30"
             iconColor="text-purple-600 dark:text-purple-400"
-            delay="stagger-2"
+            delay="300ms"
           />
           <StatsCard
             icon={Camera}
@@ -191,7 +189,7 @@ export function Dashboard() {
             label="Captured"
             iconBg="bg-orange-100 dark:bg-orange-900/30"
             iconColor="text-orange-600 dark:text-orange-400"
-            delay="stagger-3"
+            delay="400ms"
           />
           <StatsCard
             icon={CheckCircle}
@@ -199,7 +197,7 @@ export function Dashboard() {
             label="Delivered"
             iconBg="bg-green-100 dark:bg-green-900/30"
             iconColor="text-green-600 dark:text-green-400"
-            delay="stagger-4"
+            delay="500ms"
           />
         </div>
       </div>
@@ -349,12 +347,15 @@ interface StatsCardProps {
 
 function StatsCard({ icon: Icon, value, label, iconBg, iconColor, delay = '' }: StatsCardProps) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
-      <div className={`w-12 h-12 rounded-xl ${iconBg} flex items-center justify-center mb-3`}>
-        <Icon className={`w-6 h-6 ${iconColor}`} />
+    <div 
+      className="bg-white dark:bg-gray-800 rounded-3xl p-5 shadow-sm hover:shadow-xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 animate-fade-in"
+      style={{ animationDelay: delay }}
+    >
+      <div className={`w-14 h-14 rounded-2xl ${iconBg} flex items-center justify-center mb-4 transition-transform duration-500 hover:rotate-12`}>
+        <Icon className={`w-7 h-7 ${iconColor}`} />
       </div>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white mb-0.5">{value}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</p>
+      <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{value}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wide">{label}</p>
     </div>
   );
 }
