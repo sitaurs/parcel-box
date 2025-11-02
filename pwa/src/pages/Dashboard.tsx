@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Camera, Package as PackageIcon, CheckCircle, Wifi, WifiOff, Clock, MapPin, ChevronRight, Settings as SettingsIcon, User, Shield, MessageCircle, Bell, Image as ImageIcon } from 'lucide-react';
+import { TrendingUp, Camera, Package as PackageIcon, CheckCircle, Wifi, WifiOff, Clock, MapPin, ChevronRight, Settings as SettingsIcon, Shield, Bell, Image as ImageIcon } from 'lucide-react';
 import { socket } from '../lib/socket';
 import * as api from '../lib/api';
 import { MoodWidget } from '../components/MoodWidget';
@@ -128,6 +128,36 @@ export function Dashboard() {
               {user?.name || 'User'}
             </h1>
           </div>
+
+          {/* Status Indicators - Right Side */}
+          <div className="flex flex-col items-end space-y-2 animate-fade-in">
+            {/* Connection Status */}
+            <div className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full transition-all ${
+              connected 
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+            }`}>
+              {connected ? (
+                <>
+                  <Wifi className="w-3.5 h-3.5" />
+                  <span className="text-xs font-semibold">Online</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-3.5 h-3.5" />
+                  <span className="text-xs font-semibold">Offline</span>
+                </>
+              )}
+            </div>
+
+            {/* Today's Packages Badge */}
+            {stats.todayPackages > 0 && (
+              <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full">
+                <PackageIcon className="w-3.5 h-3.5" />
+                <span className="text-xs font-bold">{stats.todayPackages} today</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -136,7 +166,7 @@ export function Dashboard() {
         <div className="grid grid-cols-2 gap-3 animate-fade-in">
           <button
             onClick={() => navigate('/packages')}
-            className="p-4 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white"
+            className="p-4 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white aspect-square flex flex-col items-center justify-center"
           >
             <div className="flex flex-col items-center text-center space-y-2">
               <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
@@ -151,7 +181,7 @@ export function Dashboard() {
 
           <button
             onClick={() => navigate('/gallery')}
-            className="p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white"
+            className="p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white aspect-square flex flex-col items-center justify-center"
           >
             <div className="flex flex-col items-center text-center space-y-2">
               <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
@@ -166,7 +196,7 @@ export function Dashboard() {
 
           <button
             onClick={() => navigate('/notifications')}
-            className="p-4 bg-gradient-to-br from-orange-500 to-red-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white"
+            className="p-4 bg-gradient-to-br from-orange-500 to-red-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white aspect-square flex flex-col items-center justify-center"
           >
             <div className="flex flex-col items-center text-center space-y-2">
               <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
@@ -182,7 +212,7 @@ export function Dashboard() {
           {user?.role === 'admin' && (
             <button
               onClick={() => navigate('/admin/users')}
-              className="p-4 bg-gradient-to-br from-red-500 to-orange-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white"
+              className="p-4 bg-gradient-to-br from-red-500 to-orange-500 rounded-3xl shadow-lg hover:shadow-2xl active:scale-95 transition-all text-white aspect-square flex flex-col items-center justify-center"
             >
               <div className="flex flex-col items-center text-center space-y-2">
                 <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">

@@ -291,17 +291,10 @@ export function WhatsApp() {
     };
   }, []);
 
-  // Auto-scroll logs only if user is near bottom
+  // Removed auto-scroll - user requested no auto-scroll on page load
+  // Auto-scroll only when user manually adds logs or is already at bottom
   useEffect(() => {
-    const logsContainer = logsEndRef.current?.parentElement;
-    if (!logsContainer) return;
-
-    const isNearBottom = logsContainer.scrollHeight - logsContainer.scrollTop - logsContainer.clientHeight < 100;
-    
-    // Only auto-scroll if user is already near the bottom (within 100px)
-    if (isNearBottom) {
-      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    // Do nothing - removed auto-scroll behavior
   }, [logs]);
 
   async function handleStart() {
@@ -486,12 +479,12 @@ export function WhatsApp() {
 
               {/* Phone Number Input - Untuk Pairing Code */}
               {!status.connected && (
-                <div className="mb-6 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl border-2 border-blue-200 dark:border-gray-600">
+                <div className="mb-6 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl border-2 border-blue-200 dark:border-gray-600 shadow-lg">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center flex-shrink-0">
                       <span className="text-2xl">📱</span>
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-gray-900 dark:text-white">Link with Phone Number</h3>
                       <p className="text-xs text-gray-600 dark:text-gray-400">Get pairing code for your WhatsApp</p>
                     </div>
@@ -502,7 +495,7 @@ export function WhatsApp() {
                     placeholder="628123456789 (country code + number, no +)"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
-                    className="w-full px-4 py-3 mb-3 border-2 border-blue-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-center font-mono text-lg"
+                    className="w-full px-4 py-3 mb-3 border-2 border-blue-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-center font-mono text-lg transition-all"
                     disabled={loading || status.connected}
                   />
                   
@@ -524,11 +517,38 @@ export function WhatsApp() {
                     )}
                   </button>
                   
+                  {/* Pairing Code Display - Inline, not separate card */}
                   {pairingCode && (
-                    <div className="mt-4 p-4 bg-green-100 dark:bg-green-900/30 border-2 border-green-500 rounded-xl text-center">
-                      <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">Your Pairing Code:</p>
-                      <p className="text-3xl font-bold text-green-600 dark:text-green-400 tracking-widest font-mono">{pairingCode}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Enter this code in WhatsApp → Linked Devices</p>
+                    <div className="mt-4 p-6 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 border-2 border-green-500 dark:border-green-600 rounded-2xl text-center shadow-xl animate-slide-in-up">
+                      <div className="mb-3">
+                        <p className="text-sm text-green-700 dark:text-green-300 font-semibold mb-2">✅ Your Pairing Code:</p>
+                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl inline-block">
+                          <p className="text-4xl md:text-5xl font-bold text-green-600 dark:text-green-400 tracking-[0.3em] font-mono">
+                            {pairingCode}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(pairingCode);
+                          addLog('📋 Pairing code copied to clipboard', 'success');
+                        }}
+                        className="mt-3 px-6 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white rounded-xl font-semibold shadow-md transition-all active:scale-95"
+                      >
+                        📋 Copy Code
+                      </button>
+                      
+                      <div className="mt-4 text-left space-y-1">
+                        <p className="text-xs text-green-800 dark:text-green-300 font-semibold">Enter this code on your phone:</p>
+                        <ol className="text-[11px] text-green-700 dark:text-green-400 space-y-0.5 pl-4">
+                          <li>1. Open WhatsApp on your phone</li>
+                          <li>2. Go to <strong>Settings → Linked Devices</strong></li>
+                          <li>3. Tap <strong>Link a Device</strong></li>
+                          <li>4. Choose <strong>Link with phone number</strong></li>
+                          <li>5. Enter the code above</li>
+                        </ol>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -575,43 +595,6 @@ export function WhatsApp() {
                 </p>
               </div>
             </div>
-
-            {/* Pairing Code Card */}
-            {pairingCode && (
-              <div className="card bg-white dark:bg-gray-800 shadow-xl rounded-2xl">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
-                  🔐 Pairing Code
-                </h2>
-                <div className="flex flex-col items-center">
-                  <div className="bg-gradient-to-br from-green-400 to-emerald-500 p-8 rounded-2xl shadow-2xl border-4 border-green-600">
-                    <p className="text-7xl font-bold text-white tracking-widest font-mono">
-                      {pairingCode}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(pairingCode);
-                      addLog('📋 Pairing code copied to clipboard', 'success');
-                    }}
-                    className="mt-4 px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold shadow-md transition-all"
-                  >
-                    📋 Copy Code
-                  </button>
-                  <div className="mt-6 p-4 bg-green-50 dark:bg-green-900 dark:bg-opacity-20 rounded-xl text-center max-w-md">
-                    <p className="text-sm text-green-800 dark:text-green-300 font-semibold mb-2">
-                      Enter this code on your phone:
-                    </p>
-                    <ol className="text-xs text-green-700 dark:text-green-400 text-left space-y-1">
-                      <li>1. Open WhatsApp on your phone</li>
-                      <li>2. Go to <strong>Settings → Linked Devices</strong></li>
-                      <li>3. Tap <strong>Link a Device</strong></li>
-                      <li>4. Choose <strong>Link with phone number</strong></li>
-                      <li>5. Enter the code above</li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Info Card */}
             {!status.connected && !qrCode && !pairingCode && !loading && (

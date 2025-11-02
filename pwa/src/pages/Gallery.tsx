@@ -110,7 +110,7 @@ export function Gallery() {
             document.execCommand('copy');
             alert('✅ Image URL copied to clipboard!');
           } catch (err) {
-            alert('❌ Failed to copy URL. Please copy manually: ' + imageUrl);
+            alert('❌ Failed to copy URL. Please copy manually: ' + fullImageUrl);
           }
           document.body.removeChild(textArea);
         }

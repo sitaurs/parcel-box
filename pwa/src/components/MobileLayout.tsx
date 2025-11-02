@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Package, ImageIcon, MessageCircle, Settings, LogOut, Menu, X, Wifi, WifiOff, Moon, Sun, Bell, Shield } from 'lucide-react';
+import { Home, Package, ImageIcon, Settings, LogOut, Wifi, WifiOff, Moon, Sun, Bell, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -15,7 +15,6 @@ export function MobileLayout({ children }: MobileLayoutProps) {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -33,13 +32,6 @@ export function MobileLayout({ children }: MobileLayoutProps) {
     { path: '/gallery', icon: ImageIcon, label: 'Gallery', color: 'from-green-500 to-emerald-500' },
     { path: '/notifications', icon: Bell, label: 'Alerts', color: 'from-indigo-500 to-purple-500' },
     { path: '/settings', icon: Settings, label: 'Settings', color: 'from-gray-500 to-slate-500' }, // Changed from Chat to Settings
-  ];
-
-  // Admin link only in sidebar, not bottom nav (too cramped)
-  const sidebarItems = [
-    ...navItems,
-    ...(user?.role === 'admin' ? [{ path: '/admin/users', icon: Shield, label: 'Admin', color: 'from-red-500 to-orange-500' }] : []),
-    { path: '/settings', icon: Settings, label: 'Settings', color: 'from-gray-500 to-slate-500' },
   ];
 
   const currentPage = navItems.find(item => item.path === location.pathname);
@@ -204,12 +196,12 @@ export function MobileLayout({ children }: MobileLayoutProps) {
 
           {/* Tablet Navigation */}
           <nav className="flex items-center space-x-1">
-            {navItems.map((item, index) => (
+            {navItems.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center justify-center w-12 h-12 rounded-xl transition-all group animate-fade-in stagger-${index + 1} ${
+                  `flex items-center justify-center w-12 h-12 rounded-xl transition-all group animate-fade-in ${
                     isActive
                       ? 'bg-gradient-to-r ' + item.color + ' text-white shadow-lg scale-110 hover-glow'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-110 hover:shadow-md'
