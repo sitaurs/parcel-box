@@ -64,10 +64,9 @@ export default function AdminUsers() {
       console.log('📡 Fetching users from /admin/users...');
       const response = await api.get('/admin/users');
       console.log('📦 Raw API response:', response);
-      console.log('📦 Response.data:', response.data);
       
-      // Handle both response.data and response.data.users
-      const usersData = Array.isArray(response.data) ? response.data : (response.data.users || []);
+      // API client returns the data directly, not wrapped in { data: ... }
+      const usersData = Array.isArray(response) ? response : (response.users || []);
       console.log('👥 Users array:', usersData);
       
       setUsers(usersData);
@@ -84,7 +83,8 @@ export default function AdminUsers() {
   const fetchStats = async () => {
     try {
       const response = await api.get('/admin/stats');
-      setStats(response.data);
+      // API client returns data directly, not wrapped
+      setStats(response);
     } catch (err: any) {
       console.error('Failed to load stats:', err);
       // Don't show stats error to user, just log it
