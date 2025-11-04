@@ -2,6 +2,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import { config } from '../config';
 import { getMQTTService } from './mqtt';
+import { logger } from '../utils/logger';
 
 // Conditional logging based on environment
 const isDev = config.nodeEnv === 'development';
@@ -22,13 +23,13 @@ export function initializeSocket(httpServer: HTTPServer): SocketIOServer {
   });
 
   io.on('connection', (socket: Socket) => {
-    console.log('Client connected:', socket.id);
+    logger.info('Client connected:', socket.id);
 
     // WhatsApp handlers removed - now handled by backend-whatsapp service
 
     // Handle relay control command
     socket.on('cmd_relay', (data: { deviceId: string; ch: number; on: boolean }) => {
-      console.log('Relay command:', data);
+      logger.info('Relay command:', data);
       try {
         const mqttService = getMQTTService();
         // ch: 1 = Lock, 2 = Lamp
@@ -38,61 +39,61 @@ export function initializeSocket(httpServer: HTTPServer): SocketIOServer {
           mqttService.controlRelay(data.deviceId, 'lamp', data.on);
         }
       } catch (error) {
-        console.error('MQTT control error:', error);
+        logger.error('MQTT control error:', error);
       }
     });
 
     // Handle buzzer control command
     socket.on('cmd_buzz', (data: { deviceId: string; ms: number }) => {
-      console.log('Buzzer command:', data);
+      logger.info('Buzzer command:', data);
       try {
         const mqttService = getMQTTService();
         mqttService.triggerBuzzer(data.deviceId, data.ms);
       } catch (error) {
-        console.error('MQTT buzzer error:', error);
+        logger.error('MQTT buzzer error:', error);
       }
     });
 
     // Handle manual capture command
     socket.on('cmd_capture', (data: { deviceId: string }) => {
-      console.log('Manual capture:', data);
+      logger.info('Manual capture:', data);
       try {
         const mqttService = getMQTTService();
         mqttService.capturePhoto(data.deviceId);
       } catch (error) {
-        console.error('MQTT capture error:', error);
+        logger.error('MQTT capture error:', error);
       }
     });
 
     // Handle test camera command
     socket.on('cmd_test_camera', (data: { deviceId: string }) => {
-      console.log('Test camera:', data);
+      logger.info('Test camera:', data);
       try {
         const mqttService = getMQTTService();
         mqttService.capturePhoto(data.deviceId);
         socket.emit('test_result', { test: 'camera', status: 'requested' });
       } catch (error) {
-        console.error('MQTT test camera error:', error);
+        logger.error('MQTT test camera error:', error);
         socket.emit('test_result', { test: 'camera', status: 'error', error: String(error) });
       }
     });
 
     // Handle test flash command
     socket.on('cmd_test_flash', (data: { deviceId: string; ms: number }) => {
-      console.log('Test flash:', data);
+      logger.info('Test flash:', data);
       try {
         const mqttService = getMQTTService();
         const topic = `smartparcel/${data.deviceId}/cmd/flash`;
         mqttService.publish(topic, { ms: data.ms });
         socket.emit('test_result', { test: 'flash', status: 'sent' });
       } catch (error) {
-        console.error('MQTT test flash error:', error);
+        logger.error('MQTT test flash error:', error);
         socket.emit('test_result', { test: 'flash', status: 'error', error: String(error) });
       }
     });
 
     socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
+      logger.info('Client disconnected:', socket.id);
     });
   });
 
@@ -158,7 +159,7 @@ export function emitDeviceStatus(data: {
 export function emitQRUpdate(dataUrl: string): void {
   if (io) {
     io.emit('qr_update', { dataUrl });
-    console.log('Emitted QR update');
+    logger.info('Emitted QR update');
   }
 }
 
@@ -174,7 +175,7 @@ export function emitWAStatus(data: {
 }): void {
   if (io) {
     io.emit('wa_status', data);
-    console.log('Emitted WA status:', data.connected, data.message || '');
+    logger.info('Emitted WA status:', data.connected, data.message || '');
   }
 }
 
@@ -218,7 +219,7 @@ export function emitControlAck(data: {
 }): void {
   if (io) {
     io.emit('control_ack', data);
-    console.log('Emitted control_ack:', data);
+    logger.info('Emitted control_ack:', data);
   }
 }
 
@@ -233,7 +234,7 @@ export function emitSettingsAck(data: {
 }): void {
   if (io) {
     io.emit('settings_ack', data);
-    console.log('Emitted settings_ack:', data);
+    logger.info('Emitted settings_ack:', data);
   }
 }
 
@@ -248,6 +249,6 @@ export function emitCurrentSettings(data: {
 }): void {
   if (io) {
     io.emit('current_settings', data);
-    console.log('Emitted current_settings:', data);
+    logger.info('Emitted current_settings:', data);
   }
 }

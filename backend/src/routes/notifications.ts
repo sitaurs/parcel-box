@@ -7,6 +7,7 @@ import { Router, Request, Response } from 'express';
 import { db } from '../services/database';
 import { optionalAuth } from '../middleware/auth';
 import { notificationQueue } from '../services/notificationQueue';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -60,7 +61,7 @@ router.get('/', optionalAuth, async (req: Request, res: Response): Promise<void>
       },
     });
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    logger.error('Error fetching notifications:', error);
     res.status(500).json({ error: 'Failed to fetch notifications' });
   }
 });
@@ -88,7 +89,7 @@ router.get('/stats', optionalAuth, async (req: Request, res: Response): Promise<
 
     res.json(stats);
   } catch (error) {
-    console.error('Error fetching notification stats:', error);
+    logger.error('Error fetching notification stats:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
   }
 });
@@ -109,7 +110,7 @@ router.get('/:id', optionalAuth, async (req: Request, res: Response): Promise<vo
 
     res.json(notification);
   } catch (error) {
-    console.error('Error fetching notification:', error);
+    logger.error('Error fetching notification:', error);
     res.status(500).json({ error: 'Failed to fetch notification' });
   }
 });
@@ -155,7 +156,7 @@ router.post('/:id/retry', optionalAuth, async (req: Request, res: Response): Pro
       queueId,
     });
   } catch (error) {
-    console.error('Error retrying notification:', error);
+    logger.error('Error retrying notification:', error);
     res.status(500).json({ error: 'Failed to retry notification' });
   }
 });
@@ -187,7 +188,7 @@ router.delete('/:id', optionalAuth, async (req: Request, res: Response): Promise
 
     res.json({ success: true, message: 'Notification deleted' });
   } catch (error) {
-    console.error('Error deleting notification:', error);
+    logger.error('Error deleting notification:', error);
     res.status(500).json({ error: 'Failed to delete notification' });
   }
 });

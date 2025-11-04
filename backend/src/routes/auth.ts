@@ -3,6 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { db } from '../services/database';
+import { logger } from '../utils/logger';
+import { authLimiter } from '../middleware/rateLimiter';
+import { validate, loginSchema, registerSchema, changePinSchema } from '../middleware/validation';
 
 const router = express.Router();
 
@@ -55,22 +58,17 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/login', async (req: Request, res: Response): Promise<void> => {
+router.post('/login', authLimiter, validate(loginSchema), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.validatedData as { username: string; password: string };
 
-    if (!username || !password) {
-      res.status(400).json({ error: 'Username and password are required' });
-      return;
-    }
-
-    console.log('🔐 Login attempt for username:', username);
+    logger.info('🔐 Login attempt for username:', username);
 
     // Find user by username
     const user = await db.getUserByUsername(username);
 
     if (!user) {
-      console.log('❌ User not found:', username);
+      logger.info('❌ User not found:', username);
       res.status(401).json({ error: 'Invalid credentials' });
       return;
     }
@@ -78,12 +76,12 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     // Verify password
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      console.log('❌ Invalid password for user:', username);
+      logger.info('❌ Invalid password for user:', username);
       res.status(401).json({ error: 'Invalid credentials' });
       return;
     }
 
-    console.log('✅ Login successful:', username);
+    logger.info('✅ Login successful:', username);
 
     // Generate JWT token (7 days expiry)
     const token = jwt.sign(
@@ -101,7 +99,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       },
     });
   } catch (error: any) {
-    console.error('❌ Login error:', error);
+    logger.error('❌ Login error:', error);
     res.status(500).json({ error: 'Login failed' });
   }
 });
@@ -146,7 +144,7 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
       },
     });
   } catch (error: any) {
-    console.error('Token refresh error:', error);
+    logger.error('Token refresh error:', error);
     res.status(401).json({ error: 'Token refresh failed' });
   }
 });
@@ -181,7 +179,7 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
       hasPin: !!user.pin,
     });
   } catch (error: any) {
-    console.error('Get user error:', error);
+    logger.error('Get user error:', error);
     res.status(401).json({ error: 'Invalid token' });
   }
 });
@@ -217,10 +215,10 @@ router.put('/pin', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    console.log('✅ PIN updated for user:', updatedUser.username);
+    logger.info('✅ PIN updated for user:', updatedUser.username);
     res.json({ message: 'PIN updated successfully' });
   } catch (error: any) {
-    console.error('❌ Update PIN error:', error);
+    logger.error('❌ Update PIN error:', error);
     res.status(500).json({ error: 'Failed to update PIN' });
   }
 });
@@ -253,7 +251,7 @@ router.put('/profile', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    console.log('✅ Profile updated for user:', updatedUser.username, '- Name:', name);
+    logger.info('✅ Profile updated for user:', updatedUser.username, '- Name:', name);
     res.json({ 
       message: 'Profile updated successfully',
       user: {
@@ -264,7 +262,7 @@ router.put('/profile', async (req: Request, res: Response): Promise<void> => {
       }
     });
   } catch (error: any) {
-    console.error('❌ Update profile error:', error);
+    logger.error('❌ Update profile error:', error);
     res.status(500).json({ error: 'Failed to update profile' });
   }
 });
@@ -320,10 +318,10 @@ router.post('/change-password', async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    console.log('✅ Password changed for user:', user.username);
+    logger.info('✅ Password changed for user:', user.username);
     res.json({ message: 'Password changed successfully' });
   } catch (error: any) {
-    console.error('Change password error:', error);
+    logger.error('Change password error:', error);
     res.status(500).json({ error: 'Failed to change password' });
   }
 });

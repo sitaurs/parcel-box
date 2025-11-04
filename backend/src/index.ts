@@ -9,6 +9,8 @@ import { swaggerSpec } from './config/swagger';
 import { initializeSocket } from './services/socket';
 import { initMQTT } from './services/mqtt';
 import { initializeDatabase } from './services/database';
+import { apiLimiter } from './middleware/rateLimiter';
+import { register as metricsRegister } from './services/metrics';
 
 // Import routes
 import authRouter from './routes/auth';
@@ -20,6 +22,7 @@ import whatsappRouter from './routes/whatsapp';
 import lockRouter from './routes/lock';
 import notificationsRouter from './routes/notifications';
 import adminRouter from './routes/admin';
+import { logger } from './utils/logger';
 
 const app = express();
 const server = http.createServer(app);
@@ -28,17 +31,17 @@ const server = http.createServer(app);
 const io = initializeSocket(server);
 
 // Initialize JSON Database
-console.log('🗄️  Initializing JSON Database...');
+logger.info('🗄️  Initializing JSON Database...');
 initializeDatabase().then(() => {
-  console.log('✅ Database ready');
+  logger.info('✅ Database ready');
 }).catch(err => {
-  console.error('❌ Database initialization failed:', err);
+  logger.error('❌ Database initialization failed:', err);
   process.exit(1);
 });
 
 // Initialize MQTT
 if (config.mqtt.enabled) {
-  console.log('🔌 Initializing MQTT service...');
+  logger.info('🔌 Initializing MQTT service...');
   initMQTT({
     host: config.mqtt.host,
     port: config.mqtt.port,
@@ -46,7 +49,7 @@ if (config.mqtt.enabled) {
     password: config.mqtt.password,
   });
 } else {
-  console.log('⚠️  MQTT disabled in configuration');
+  logger.info('⚠️  MQTT disabled in configuration');
 }
 
 // Middleware
@@ -62,7 +65,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Request logging
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+  logger.info(`${new Date().toISOString()} ${req.method} ${req.path}`);
   next();
 });
 
@@ -108,6 +111,23 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customSiteTitle: 'Smart Parcel Box API Docs',
 }));
 
+// Prometheus metrics endpoint
+app.get('/metrics', async (req: Request, res: Response) => {
+  try {
+    res.set('Content-Type', metricsRegister.contentType);
+    const metrics = await metricsRegister.metrics();
+    res.end(metrics);
+  } catch (error) {
+    logger.error('Error exporting metrics:', error);
+    res.status(500).end('Error exporting metrics');
+  }
+});
+logger.info('📊 Metrics endpoint available at /metrics');
+
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
+logger.info('🛡️  Rate limiting enabled: 100 req/15min per IP');
+
 // API routes
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/packages', packagesRouter);
@@ -148,7 +168,7 @@ app.use((req: Request, res: Response) => {
 
 // Error handler
 app.use((err: any, req: Request, res: Response, next: any) => {
-  console.error('Error:', err);
+  logger.error('Error:', err);
   res.status(err.status || 500).json({
     error: err.message || 'Internal server error',
   });
@@ -156,30 +176,30 @@ app.use((err: any, req: Request, res: Response, next: any) => {
 
 // Start server
 server.listen(config.port, () => {
-  console.log('╔════════════════════════════════════════════╗');
-  console.log('║   Smart Parcel Box - Backend Server       ║');
-  console.log('╚════════════════════════════════════════════╝');
-  console.log(`🚀 Server running on http://localhost:${config.port}`);
-  console.log(`📡 WebSocket endpoint: ws://localhost:${config.port}/ws`);
-  console.log(`📁 Storage directory: ${config.storage.dir}`);
-  console.log(`🗄️  Database: ${config.database.url}`);
-  console.log(`🌍 Environment: ${config.nodeEnv}`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info('╔════════════════════════════════════════════╗');
+  logger.info('║   Smart Parcel Box - Backend Server       ║');
+  logger.info('╚════════════════════════════════════════════╝');
+  logger.info(`🚀 Server running on http://localhost:${config.port}`);
+  logger.info(`📡 WebSocket endpoint: ws://localhost:${config.port}/ws`);
+  logger.info(`📁 Storage directory: ${config.storage.dir}`);
+  logger.info(`🗄️  Database: ${config.database.url}`);
+  logger.info(`🌍 Environment: ${config.nodeEnv}`);
+  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
+  logger.info('SIGTERM received, shutting down gracefully...');
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully...');
+  logger.info('SIGINT received, shutting down gracefully...');
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });

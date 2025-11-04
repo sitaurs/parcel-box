@@ -1,6 +1,7 @@
 import mqtt from 'mqtt';
 import { db } from './database';
 import { emitDeviceUpdate, emitEvent, emitDistanceUpdate, emitControlAck, emitSettingsAck, emitCurrentSettings } from './socket';
+import { logger } from '../utils/logger';
 
 interface MQTTConfig {
   host: string;
@@ -25,7 +26,7 @@ class MQTTService {
   connect(): void {
     const url = `mqtt://${this.config.host}:${this.config.port}`;
     
-    console.log(`[MQTT] Connecting to ${url}...`);
+    logger.info(`[MQTT] Connecting to ${url}...`);
     
     this.client = mqtt.connect(url, {
       username: this.config.username,
@@ -36,15 +37,15 @@ class MQTTService {
     });
 
     this.client.on('connect', () => {
-      console.log('✅ [MQTT] Connected!');
+      logger.info('✅ [MQTT] Connected!');
       this.isConnected = true;
       
       // Subscribe to all smartparcel topics
       this.client?.subscribe('smartparcel/#', (err) => {
         if (err) {
-          console.error('❌ [MQTT] Subscribe error:', err);
+          logger.error('❌ [MQTT] Subscribe error:', err);
         } else {
-          console.log('📡 [MQTT] Subscribed to: smartparcel/#');
+          logger.info('📡 [MQTT] Subscribed to: smartparcel/#');
         }
       });
     });
@@ -54,17 +55,17 @@ class MQTTService {
     });
 
     this.client.on('error', (error) => {
-      console.error('❌ [MQTT] Error:', error);
+      logger.error('❌ [MQTT] Error:', error);
       this.isConnected = false;
     });
 
     this.client.on('close', () => {
-      console.log('⚠️  [MQTT] Connection closed');
+      logger.info('⚠️  [MQTT] Connection closed');
       this.isConnected = false;
     });
 
     this.client.on('reconnect', () => {
-      console.log('🔄 [MQTT] Reconnecting...');
+      logger.info('🔄 [MQTT] Reconnecting...');
     });
   }
 
@@ -82,7 +83,7 @@ class MQTTService {
       try {
         await this.handleMessage(topic, payload);
       } catch (error) {
-        console.error('[MQTT] Message processing error:', error);
+        logger.error('[MQTT] Message processing error:', error);
       }
     });
     
@@ -103,7 +104,7 @@ class MQTTService {
    */
   private async handleMessage(topic: string, payload: string): Promise<void> {
     try {
-      console.log(`[MQTT] ${topic}: ${payload}`);
+      logger.info(`[MQTT] ${topic}: ${payload}`);
       
       const parts = topic.split('/');
       const deviceId = parts[1]; // smartparcel/box-01/...
@@ -151,12 +152,21 @@ class MQTTService {
             await this.handleCurrentSettings(deviceId, data);
           }
           break;
+        
+        case 'lock':
+          // Handle lock-specific messages
+          if (subType === 'status') {
+            await this.handleLockStatus(deviceId, data);
+          } else if (subType === 'alert') {
+            await this.handleLockAlert(deviceId, data);
+          }
+          break;
           
         default:
-          console.log(`[MQTT] Unknown message type: ${messageType}`);
+          logger.info(`[MQTT] Unknown message type: ${messageType}`);
       }
     } catch (error) {
-      console.error('[MQTT] Message handling error:', error);
+      logger.error('[MQTT] Message handling error:', error);
     }
   }
 
@@ -192,9 +202,9 @@ class MQTTService {
         rssi: data.rssi,
       });
 
-      console.log(`✅ [MQTT] Device ${deviceId} status updated`);
+      logger.info(`✅ [MQTT] Device ${deviceId} status updated`);
     } catch (error) {
-      console.error('[MQTT] Status update error:', error);
+      logger.error('[MQTT] Status update error:', error);
     }
   }
 
@@ -219,9 +229,9 @@ class MQTTService {
         ts: event.ts,
       });
 
-      console.log(`✅ [MQTT] Event logged: ${event.type}`);
+      logger.info(`✅ [MQTT] Event logged: ${event.type}`);
     } catch (error) {
-      console.error('[MQTT] Event handling error:', error);
+      logger.error('[MQTT] Event handling error:', error);
     }
   }
 
@@ -240,7 +250,7 @@ class MQTTService {
         ts: new Date().toISOString(),
       });
     } catch (error) {
-      console.error('[MQTT] Distance handling error:', error);
+      logger.error('[MQTT] Distance handling error:', error);
     }
   }
 
@@ -255,9 +265,9 @@ class MQTTService {
         msg: data.msg,
         cmd: data.cmd,
       });
-      console.log(`✅ [MQTT] Control ACK from ${deviceId}:`, data);
+      logger.info(`✅ [MQTT] Control ACK from ${deviceId}:`, data);
     } catch (error) {
-      console.error('[MQTT] Control ACK handling error:', error);
+      logger.error('[MQTT] Control ACK handling error:', error);
     }
   }
 
@@ -272,9 +282,9 @@ class MQTTService {
         msg: data.msg,
         settings: data.settings,
       });
-      console.log(`✅ [MQTT] Settings ACK from ${deviceId}:`, data);
+      logger.info(`✅ [MQTT] Settings ACK from ${deviceId}:`, data);
     } catch (error) {
-      console.error('[MQTT] Settings ACK handling error:', error);
+      logger.error('[MQTT] Settings ACK handling error:', error);
     }
   }
 
@@ -289,9 +299,9 @@ class MQTTService {
         lock: data.lock,
         buzzer: data.buzzer,
       });
-      console.log(`✅ [MQTT] Current settings from ${deviceId}:`, data);
+      logger.info(`✅ [MQTT] Current settings from ${deviceId}:`, data);
     } catch (error) {
-      console.error('[MQTT] Current settings handling error:', error);
+      logger.error('[MQTT] Current settings handling error:', error);
     }
   }
 
@@ -300,7 +310,7 @@ class MQTTService {
    */
   publish(topic: string, message: any): void {
     if (!this.isConnected || !this.client) {
-      console.error('[MQTT] Not connected, cannot publish');
+      logger.error('[MQTT] Not connected, cannot publish');
       return;
     }
 
@@ -308,9 +318,9 @@ class MQTTService {
     
     this.client.publish(topic, payload, { qos: 1 }, (err) => {
       if (err) {
-        console.error(`[MQTT] Publish error to ${topic}:`, err);
+        logger.error(`[MQTT] Publish error to ${topic}:`, err);
       } else {
-        console.log(`📤 [MQTT] Published to ${topic}: ${payload}`);
+        logger.info(`📤 [MQTT] Published to ${topic}: ${payload}`);
       }
     });
   }
@@ -362,7 +372,7 @@ class MQTTService {
       this.client.end();
       this.client = null;
       this.isConnected = false;
-      console.log('⛔ [MQTT] Disconnected');
+      logger.info('⛔ [MQTT] Disconnected');
     }
   }
 
@@ -371,6 +381,167 @@ class MQTTService {
    */
   getStatus(): { connected: boolean } {
     return { connected: this.isConnected };
+  }
+
+  /**
+   * Handle lock status updates from ESP8266
+   */
+  private async handleLockStatus(deviceId: string, data: any): Promise<void> {
+    try {
+      const { status, method, attempts, lockout_duration } = data;
+      
+      // Log event
+      await db.createEvent({
+        type: 'LOCK_STATUS',
+        deviceId,
+        packageId: null,
+        ts: new Date().toISOString(),
+        data: {
+          status,
+          method,
+          attempts,
+          lockout_duration,
+          timestamp: Date.now(),
+        },
+      });
+
+      // Emit to connected clients
+      emitEvent({
+        id: Date.now(),
+        type: 'LOCK_STATUS',
+        deviceId,
+        ts: new Date().toISOString(),
+        data: { status, method, attempts },
+      });
+
+      logger.info(`🔐 [MQTT] Lock status from ${deviceId}: ${status} via ${method}`);
+
+      // Handle suspicious activity
+      if (method === 'keypad_failed' || method === 'keypad_lockout' || method === 'remote_denied') {
+        await this.handleLockAlert(deviceId, {
+          type: method,
+          attempts: attempts || 1,
+          lockout_duration,
+          timestamp: Date.now(),
+        });
+      }
+    } catch (error) {
+      logger.error('[MQTT] Lock status handling error:', error);
+    }
+  }
+
+  /**
+   * Handle lock security alerts and send WhatsApp notifications
+   */
+  private async handleLockAlert(deviceId: string, data: any): Promise<void> {
+    try {
+      const { type, attempts, lockout_duration } = data;
+      
+      // Log security event
+      await db.createEvent({
+        type: 'SECURITY_ALERT',
+        deviceId,
+        packageId: null,
+        ts: new Date().toISOString(),
+        data: {
+          alertType: type,
+          attempts,
+          lockout_duration,
+          timestamp: Date.now(),
+        },
+      });
+
+      // Prepare WhatsApp message based on alert type
+      let message = '';
+      
+      if (type === 'keypad_failed') {
+        message = `🚨 *SECURITY ALERT*\n\n` +
+                  `❌ Failed unlock attempt on ${deviceId}\n` +
+                  `📍 Method: Physical Keypad\n` +
+                  `🔢 Attempt #${attempts} of 3\n` +
+                  `⏰ Time: ${new Date().toLocaleString('id-ID')}\n\n` +
+                  `⚠️ Multiple failed attempts may indicate unauthorized access!`;
+      } else if (type === 'keypad_lockout') {
+        message = `🚨 *SECURITY ALERT - LOCKOUT*\n\n` +
+                  `🔒 Device ${deviceId} is now LOCKED\n` +
+                  `❌ Too many failed PIN attempts (${attempts})\n` +
+                  `⏱️ Lockout duration: ${lockout_duration}s\n` +
+                  `⏰ Time: ${new Date().toLocaleString('id-ID')}\n\n` +
+                  `⚠️ Suspicious activity detected! Device locked for security.`;
+      } else if (type === 'remote_denied') {
+        message = `🚨 *SECURITY ALERT*\n\n` +
+                  `❌ Failed remote unlock attempt\n` +
+                  `📱 Method: PWA App\n` +
+                  `🔑 Reason: Invalid PIN\n` +
+                  `⏰ Time: ${new Date().toLocaleString('id-ID')}\n\n` +
+                  `⚠️ Someone tried to unlock remotely with wrong PIN!`;
+      }
+
+      if (message) {
+        // Get admin users to notify
+        const users = await db.getUsers();
+        const admins = users.filter(u => u.role === 'admin');
+
+        // Send WhatsApp notification to all admins
+        for (const admin of admins) {
+          if (admin.name) { // name field might contain phone number
+            const phone = admin.name.replace(/\D/g, ''); // Extract digits only
+            if (phone.length >= 10) {
+              try {
+                await db.createNotification({
+                  type: 'custom',
+                  recipient: phone,
+                  packageId: null,
+                  message,
+                  status: 'pending',
+                  attempts: 0,
+                  error: null,
+                  sentAt: null,
+                });
+                
+                logger.info(`📤 [SECURITY] Alert notification queued for ${phone}`);
+              } catch (error) {
+                logger.error(`❌ [SECURITY] Failed to queue notification for ${phone}:`, error);
+              }
+            }
+          }
+        }
+
+        // Also try to get phone from WhatsApp settings
+        const fs = require('fs').promises;
+        const path = require('path');
+        try {
+          const settingsData = await fs.readFile(
+            path.join(__dirname, '../../data/whatsapp-settings.json'),
+            'utf-8'
+          );
+          const settings = JSON.parse(settingsData);
+          
+          if (settings.recipients && Array.isArray(settings.recipients)) {
+            for (const recipient of settings.recipients) {
+              await db.createNotification({
+                type: 'custom',
+                recipient: recipient.phone,
+                packageId: null,
+                message,
+                status: 'pending',
+                attempts: 0,
+                error: null,
+                sentAt: null,
+              });
+              
+              logger.info(`📤 [SECURITY] Alert notification queued for ${recipient.phone}`);
+            }
+          }
+        } catch (error) {
+          // WhatsApp settings file might not exist, ignore
+        }
+      }
+
+      logger.warn(`⚠️ [SECURITY] Lock alert: ${type} on ${deviceId}`);
+    } catch (error) {
+      logger.error('[MQTT] Lock alert handling error:', error);
+    }
   }
 }
 

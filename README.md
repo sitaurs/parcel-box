@@ -30,6 +30,21 @@
 - **QR/Pairing Code**: Flexible authentication methods
 - **Status Monitoring**: Real-time connection status with auto-reconnect
 - **Activity Logs**: Terminal-style event logging
+- **Security Alerts**: Automated notifications for suspicious unlock attempts
+
+### 🔐 Lock Security System (ESP8266)
+- **Dual Control**: Physical keypad (4x4) + Remote unlock via PWA
+- **PIN Protection**: 4-8 digit PIN with validation on both device and backend
+- **Auto-lockout**: 30-second lockout after 3 failed attempts
+- **PIN Sync**: Automatic PIN synchronization between backend and ESP8266 via MQTT
+- **Security Notifications**: WhatsApp alerts for:
+  - Failed PIN attempts (after each wrong try)
+  - Lockout triggered (3 failed attempts)
+  - Invalid remote unlock attempts
+  - Successful unlocks (keypad/remote)
+- **Status Publishing**: Real-time lock status via MQTT
+- **Auto-lock**: Configurable auto-lock duration (default 3 seconds)
+- **LCD Display**: 16x2 I2C display for user feedback
 
 ### 🔐 Security & Authentication
 - **JWT Tokens**: 7-day expiry with automatic refresh
@@ -37,6 +52,7 @@
 - **PIN System**: User-specific PIN with validation
 - **API Token**: Device authentication for ESP32 uploads
 - **Production Guards**: Enforced environment variable validation
+- **Lock PIN Management**: Secure PIN storage and synchronization
 
 ---
 
@@ -91,10 +107,14 @@
 - QRCode (QR generation)
 
 **Hardware:**
-- ESP32-CAM (AI Thinker module)
-- HC-SR04 (ultrasonic sensor)
-- Buzzer (notification)
-- Servo motor (optional lock)
+- **ESP32-CAM** (AI Thinker module) - Package detection & photo capture
+- **HC-SR04** (ultrasonic sensor) - Distance measurement
+- **Buzzer** - Audio notification
+- **Servo motor** (optional lock)
+- **ESP8266 NodeMCU v3** - Lock control system
+- **4x4 Matrix Keypad** - PIN entry
+- **16x2 I2C LCD** - User interface display
+- **Relay Module** (active-low) - Lock mechanism control
 
 ---
 
@@ -529,6 +549,156 @@ Response: 200 OK
 }
 ```
 
+### Lock Control
+
+#### Get Lock PIN
+```http
+GET /api/v1/devices/:deviceId/lock/pin
+Authorization: Bearer <token>
+
+Response: 200 OK
+{
+  "deviceId": "box-01",
+  "pin": "43****",  // Masked for security
+  "pinLength": 6,
+  "lastUpdated": "2025-11-04T10:30:00Z"
+}
+```
+
+#### Update Lock PIN
+```http
+PUT /api/v1/devices/:deviceId/lock/pin
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "pin": "654321",
+  "userId": "user_123"
+}
+
+Response: 200 OK
+{
+  "ok": true,
+  "deviceId": "box-01",
+  "pin": "65****",  // Masked
+  "updatedAt": "2025-11-04T10:30:00Z",
+  "synced": true  // PIN synced to ESP8266 via MQTT
+}
+```
+
+#### Remote Unlock
+```http
+POST /api/v1/devices/:deviceId/unlock
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "pin": "654321",
+  "userId": "user_123",
+  "method": "remote"
+}
+
+Response: 200 OK
+{
+  "ok": true,
+  "status": "unlocked",
+  "event": {
+    "id": "evt_123",
+    "type": "UNLOCK",
+    "ts": "2025-11-04T10:30:00Z",
+    "method": "remote"
+  }
+}
+
+// If PIN invalid:
+Response: 401 Unauthorized
+{
+  "error": "Invalid PIN"
+}
+```
+
+#### Lock Device
+```http
+POST /api/v1/devices/:deviceId/lock
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "userId": "user_123",
+  "method": "app"
+}
+
+Response: 200 OK
+{
+  "ok": true,
+  "status": "locked",
+  "event": {
+    "id": "evt_124",
+    "type": "LOCK",
+    "ts": "2025-11-04T10:31:00Z",
+    "method": "app"
+  }
+}
+```
+
+#### Get Lock Status
+```http
+GET /api/v1/devices/:deviceId/lock/status
+Authorization: Bearer <token>
+
+Response: 200 OK
+{
+  "deviceId": "box-01",
+  "currentStatus": "locked",
+  "lastAction": {
+    "type": "LOCK",
+    "method": "auto",
+    "ts": "2025-11-04T10:31:00Z"
+  },
+  "recentHistory": [
+    {
+      "id": "evt_124",
+      "type": "LOCK",
+      "ts": "2025-11-04T10:31:00Z",
+      "method": "auto",
+      "userId": null
+    },
+    {
+      "id": "evt_123",
+      "type": "UNLOCK",
+      "ts": "2025-11-04T10:30:00Z",
+      "method": "keypad",
+      "userId": null,
+      "pinUsed": true
+    }
+  ]
+}
+```
+
+#### Get Lock History
+```http
+GET /api/v1/devices/:deviceId/lock/history?limit=50&offset=0&method=keypad
+Authorization: Bearer <token>
+
+Response: 200 OK
+{
+  "deviceId": "box-01",
+  "total": 120,
+  "limit": 50,
+  "offset": 0,
+  "history": [
+    {
+      "id": "evt_123",
+      "type": "UNLOCK",
+      "ts": "2025-11-04T10:30:00Z",
+      "method": "keypad",
+      "userId": null,
+      "pinUsed": true
+    }
+  ]
+}
+```
+
 ### WhatsApp
 
 #### Start WhatsApp
@@ -628,6 +798,218 @@ String serverPath = "http://your-vps-ip:8080/api/v1/packages/upload";
 // Send multipart/form-data with:
 //   - deviceId: ESP32_001
 //   - photo: <captured JPEG>
+```
+
+---
+
+## 🔐 ESP8266 Lock Control Integration
+
+### Hardware Setup
+
+#### Components
+- **ESP8266 NodeMCU v3** - Main controller
+- **4x4 Matrix Keypad** - Physical PIN entry
+  - Rows: D5(14), D6(12), D7(13), D8(15)
+  - Cols: RX(3), TX(1), D3(0), D4(2)
+- **16x2 I2C LCD** - User feedback display
+  - SDA: D2 (GPIO4)
+  - SCL: D1 (GPIO5)
+  - Address: 0x27
+- **Relay Module** (Active-LOW) - Lock control
+  - IN: D0 (GPIO16)
+  - Connect to solenoid/electric lock
+
+#### Wiring Diagram
+```
+ESP8266 NodeMCU v3
+├─ D0 (GPIO16) → Relay IN
+├─ D1 (GPIO5)  → LCD SCL
+├─ D2 (GPIO4)  → LCD SDA
+├─ D3 (GPIO0)  → Keypad Col 3
+├─ D4 (GPIO2)  → Keypad Col 4
+├─ D5 (GPIO14) → Keypad Row 1
+├─ D6 (GPIO12) → Keypad Row 2
+├─ D7 (GPIO13) → Keypad Row 3
+├─ D8 (GPIO15) → Keypad Row 4
+├─ RX (GPIO3)  → Keypad Col 1
+└─ TX (GPIO1)  → Keypad Col 2
+```
+
+### Firmware Configuration
+
+#### 1. Install Required Libraries (Arduino IDE)
+```cpp
+// Install via Library Manager:
+- LiquidCrystal_I2C (by Frank de Brabander)
+- PubSubClient (by Nick O'Leary)
+- ArduinoJson (by Benoit Blanchon) v6.x
+- ESP8266WiFi (built-in)
+```
+
+#### 2. Configure WiFi & MQTT
+```cpp
+// Edit firmware/esp8266.ino
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+const char* mqtt_server = "13.213.57.228";  // Your VPS IP or hostname
+const int mqtt_port = 1883;
+```
+
+#### 3. Upload Firmware
+```bash
+# Open Arduino IDE
+# File → Open → firmware/esp8266.ino
+# Tools → Board → NodeMCU 1.0 (ESP-12E Module)
+# Tools → Upload Speed → 115200
+# Tools → Port → (Select your COM port)
+# Click Upload ✓
+```
+
+### MQTT Topics
+
+#### Subscribe (ESP8266 listens)
+- **`smartparcel/lock/control`** - Receive unlock commands from PWA
+  ```json
+  {
+    "action": "unlock",
+    "pin": "654321",
+    "timestamp": 1699012345678
+  }
+  ```
+- **`smartparcel/lock/pin`** - Receive PIN updates from backend
+  ```json
+  {
+    "pin": "654321",
+    "timestamp": 1699012345678
+  }
+  ```
+
+#### Publish (ESP8266 sends)
+- **`smartparcel/lock/status`** - Lock status updates
+  ```json
+  {
+    "status": "unlocked",
+    "method": "keypad_success",
+    "timestamp": 1699012345678
+  }
+  ```
+  Methods: `keypad_success`, `keypad_failed`, `keypad_lockout`, `remote`, `remote_denied`, `auto`
+
+- **`smartparcel/lock/alert`** - Security alerts (auto-sent by status handler)
+  Triggers WhatsApp notifications for:
+  - `keypad_failed` - Wrong PIN attempt (shows attempt count)
+  - `keypad_lockout` - 3 failed attempts, device locked for 30s
+  - `remote_denied` - Invalid PIN from PWA app
+
+### Usage
+
+#### Physical Keypad
+```
+1. Enter 4-8 digit PIN on keypad
+2. Press # to submit
+3. If correct: Lock opens for 3 seconds
+4. If wrong: Shows "Akses Ditolak", increments fail counter
+5. After 3 fails: 30-second lockout with countdown
+```
+
+**Keypad Layout:**
+```
+┌───┬───┬───┬───┐
+│ 1 │ 2 │ 3 │ A │
+├───┼───┼───┼───┤
+│ 4 │ 5 │ 6 │ B │
+├───┼───┼───┼───┤
+│ 7 │ 8 │ 9 │ C │
+├───┼───┼───┼───┤
+│ * │ 0 │ # │ D │
+└───┴───┴───┴───┘
+
+* = Clear all
+A = Backspace (delete last digit)
+# = Submit/Check PIN
+B,C,D = Ignored (reserved)
+```
+
+#### Remote Unlock (PWA)
+```
+1. Open PWA → Lock Control
+2. Enter PIN
+3. Click "Unlock"
+4. Backend validates PIN
+5. Sends unlock command to ESP8266 via MQTT
+6. ESP8266 validates PIN again
+7. Opens lock for 3 seconds
+```
+
+#### Change PIN
+```
+1. PWA → Settings → Change Lock PIN
+2. Enter new PIN (4-8 digits)
+3. Backend:
+   - Stores PIN in devices.json
+   - Publishes to MQTT topic: smartparcel/lock/pin
+4. ESP8266:
+   - Receives PIN update
+   - Updates local PIN variable
+   - Shows "PIN Updated!" on LCD
+   - Both keypad and remote now use new PIN
+```
+
+### Security Features
+
+#### Lockout Protection
+- **3 failed attempts** → 30-second lockout
+- **Countdown displayed** on LCD
+- **WhatsApp alert sent** with lockout notification
+- After lockout ends, counter resets
+
+#### Failed Attempt Notifications
+**After each wrong PIN:**
+```
+🚨 SECURITY ALERT
+
+❌ Failed unlock attempt on box-01
+📍 Method: Physical Keypad
+🔢 Attempt #2 of 3
+⏰ Time: 04 Nov 2025, 23:30:15
+
+⚠️ Multiple failed attempts may indicate unauthorized access!
+```
+
+**On lockout:**
+```
+🚨 SECURITY ALERT - LOCKOUT
+
+🔒 Device box-01 is now LOCKED
+❌ Too many failed PIN attempts (3)
+⏱️ Lockout duration: 30s
+⏰ Time: 04 Nov 2025, 23:31:00
+
+⚠️ Suspicious activity detected! Device locked for security.
+```
+
+**On remote access denial:**
+```
+🚨 SECURITY ALERT
+
+❌ Failed remote unlock attempt
+📱 Method: PWA App
+🔑 Reason: Invalid PIN
+⏰ Time: 04 Nov 2025, 23:32:00
+
+⚠️ Someone tried to unlock remotely with wrong PIN!
+```
+
+#### PIN Synchronization
+- PIN stored in **backend database** (devices.json)
+- Synced to **ESP8266** via MQTT on change
+- Both **keypad and remote** use same PIN
+- **No hardcoded PINs** in firmware (except default 432432)
+
+### Default PIN
+```
+Default: 432432
+(Change immediately via PWA after setup!)
 ```
 
 ---

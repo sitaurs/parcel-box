@@ -7,6 +7,7 @@ import { Router, Request, Response } from 'express';
 import fs from 'fs/promises';
 import path from 'path';
 import { optionalAuth } from '../middleware/auth';
+import { logger } from '../utils/logger';
 
 const router = Router();
 const SETTINGS_FILE = path.join(__dirname, '../../data/whatsapp-settings.json');
@@ -25,7 +26,7 @@ router.get('/settings', optionalAuth, async (req: Request, res: Response): Promi
       // File doesn't exist, return defaults
       res.json({ enabled: false, recipients: [] });
     } else {
-      console.error('Error reading WhatsApp settings:', error);
+      logger.error('Error reading WhatsApp settings:', error);
       res.status(500).json({ error: 'Failed to read settings' });
     }
   }
@@ -68,11 +69,11 @@ router.post('/settings', optionalAuth, async (req: Request, res: Response): Prom
     // Save settings
     await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
 
-    console.log(`✅ WhatsApp settings saved: ${recipients.length} recipient(s), enabled: ${enabled}`);
+    logger.info(`✅ WhatsApp settings saved: ${recipients.length} recipient(s), enabled: ${enabled}`);
 
     res.json({ success: true, settings });
   } catch (error) {
-    console.error('Error saving WhatsApp settings:', error);
+    logger.error('Error saving WhatsApp settings:', error);
     res.status(500).json({ error: 'Failed to save settings' });
   }
 });

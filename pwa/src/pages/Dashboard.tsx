@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Camera, Package as PackageIcon, CheckCircle, Wifi, WifiOff, Clock, MapPin, ChevronRight, Settings as SettingsIcon, Shield, Bell, Image as ImageIcon } from 'lucide-react';
+import { TrendingUp, Camera, Package as PackageIcon, CheckCircle, Wifi, WifiOff, Clock, MapPin, ChevronRight, Settings as SettingsIcon } from 'lucide-react';
 import { socket } from '../lib/socket';
 import * as api from '../lib/api';
 import { MoodWidget } from '../components/MoodWidget';
@@ -344,7 +344,6 @@ export function Dashboard() {
           </div>
         </div>
       )}
-    </div>
     </div>
   );
 }

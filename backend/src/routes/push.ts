@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { db } from '../services/database';
 import { optionalAuth } from '../middleware/auth';
 import { config } from '../config';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -63,7 +64,7 @@ router.post(
         id: subscription!.id,
       });
     } catch (error: any) {
-      console.error('Error subscribing to push:', error);
+      logger.error('Error subscribing to push:', error);
       res.status(500).json({ error: error.message || 'Failed to subscribe' });
     }
   }
@@ -89,7 +90,7 @@ router.post(
 
       res.json({ message: 'Unsubscribed from push notifications' });
     } catch (error: any) {
-      console.error('Error unsubscribing from push:', error);
+      logger.error('Error unsubscribing from push:', error);
       res.status(500).json({ error: error.message || 'Failed to unsubscribe' });
     }
   }

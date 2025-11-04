@@ -442,33 +442,95 @@ class BaileysService {
   }
 
   /**
-   * Send text message
+   * Send text message with retry logic (3 attempts, exponential backoff)
    */
-  async sendMessage(to: string, text: string): Promise<void> {
-    if (!this.sock || !this.isConnected) {
-      throw new Error('WhatsApp not connected');
-    }
+  async sendMessage(to: string, text: string, retries = 3): Promise<void> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        if (!this.sock || !this.isConnected) {
+          throw new Error('WhatsApp not connected');
+        }
 
-    const jid = to.includes('@') ? to : `${to.replace(/\D/g, '')}@s.whatsapp.net`;
-    await this.sock.sendMessage(jid, { text });
-    console.log('📤 Message sent to', jid);
+        const jid = to.includes('@') ? to : `${to.replace(/\D/g, '')}@s.whatsapp.net`;
+        await this.sock.sendMessage(jid, { text });
+        console.log(`📤 Message sent to ${jid} (attempt ${attempt}/${retries})`);
+        return; // Success
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`❌ Message send failed (attempt ${attempt}/${retries}):`, error);
+        
+        if (attempt < retries) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          console.log(`⏳ Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          // If disconnected, attempt reconnect
+          if (!this.isConnected && !this.isStarting && !this.isBlocked) {
+            console.log('🔄 Attempting reconnect before retry...');
+            try {
+              await this.start();
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for connection
+            } catch (reconnectError) {
+              console.error('❌ Reconnect failed:', reconnectError);
+            }
+          }
+        }
+      }
+    }
+    
+    // All retries failed
+    throw new Error(`Failed to send message after ${retries} attempts: ${lastError?.message}`);
   }
 
   /**
-   * Send image with caption
+   * Send image with caption with retry logic (3 attempts, exponential backoff)
    */
-  async sendImage(to: string, imageBuffer: Buffer, caption?: string): Promise<void> {
-    if (!this.sock || !this.isConnected) {
-      throw new Error('WhatsApp not connected');
+  async sendImage(to: string, imageBuffer: Buffer, caption?: string, retries = 3): Promise<void> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        if (!this.sock || !this.isConnected) {
+          throw new Error('WhatsApp not connected');
+        }
+
+        const jid = to.includes('@') ? to : `${to.replace(/\D/g, '')}@s.whatsapp.net`;
+        await this.sock.sendMessage(jid, {
+          image: imageBuffer,
+          caption: caption || '',
+        });
+
+        console.log(`📤 Image sent to ${jid} (attempt ${attempt}/${retries})`);
+        return; // Success
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`❌ Image send failed (attempt ${attempt}/${retries}):`, error);
+        
+        if (attempt < retries) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          console.log(`⏳ Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          // If disconnected, attempt reconnect
+          if (!this.isConnected && !this.isStarting && !this.isBlocked) {
+            console.log('🔄 Attempting reconnect before retry...');
+            try {
+              await this.start();
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for connection
+            } catch (reconnectError) {
+              console.error('❌ Reconnect failed:', reconnectError);
+            }
+          }
+        }
+      }
     }
-
-    const jid = to.includes('@') ? to : `${to.replace(/\D/g, '')}@s.whatsapp.net`;
-    await this.sock.sendMessage(jid, {
-      image: imageBuffer,
-      caption: caption || '',
-    });
-
-    console.log('📤 Image sent to', jid);
+    
+    // All retries failed
+    throw new Error(`Failed to send image after ${retries} attempts: ${lastError?.message}`);
   }
 
   /**

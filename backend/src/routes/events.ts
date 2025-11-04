@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { db } from '../services/database';
 import { authenticateDevice, optionalAuth } from '../middleware/auth';
 import { emitEvent } from '../services/socket';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -63,7 +64,7 @@ router.post(
         ts: event.ts,
       });
     } catch (error) {
-      console.error('Error creating event:', error);
+      logger.error('Error creating event:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }
@@ -137,7 +138,7 @@ router.get('/', optionalAuth, async (req: Request, res: Response): Promise<void>
       },
     });
   } catch (error) {
-    console.error('Error fetching events:', error);
+    logger.error('Error fetching events:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

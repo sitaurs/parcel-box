@@ -2,6 +2,9 @@ import express, { Request, Response } from 'express';
 import { db } from '../services/database';
 import { optionalAuth } from '../middleware/auth';
 import { getMQTTService } from '../services/mqtt';
+import { logger } from '../utils/logger';
+import { deviceControlLimiter } from '../middleware/rateLimiter';
+import { validate, deviceControlSchema } from '../middleware/validation';
 
 const router = express.Router();
 
@@ -22,7 +25,7 @@ router.get('/', optionalAuth, async (req: Request, res: Response): Promise<void>
 
     res.json({ data: devices });
   } catch (error) {
-    console.error('Error fetching devices:', error);
+    logger.error('Error fetching devices:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -62,7 +65,7 @@ router.get('/:id', optionalAuth, async (req: Request, res: Response): Promise<vo
       events,
     });
   } catch (error) {
-    console.error('Error fetching device:', error);
+    logger.error('Error fetching device:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -71,10 +74,15 @@ router.get('/:id', optionalAuth, async (req: Request, res: Response): Promise<vo
  * POST /api/v1/devices/:id/control
  * Send control command to device
  */
-router.post('/:id/control', optionalAuth, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const command = req.body;
+router.post(
+  '/:id/control',
+  deviceControlLimiter,
+  optionalAuth,
+  validate(deviceControlSchema),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const command = req.validatedData as { deviceId: string; action: string };
 
     const device = await db.getDeviceById(id);
     if (!device) {
@@ -88,10 +96,10 @@ router.post('/:id/control', optionalAuth, async (req: Request, res: Response): P
     
     mqtt.publish(topic, command);
     
-    console.log(`Control command sent to ${id}:`, command);
+    logger.info(`Control command sent to ${id}:`, command);
     res.json({ ok: true, command });
   } catch (error) {
-    console.error('Error sending control command:', error);
+    logger.error('Error sending control command:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -117,10 +125,10 @@ router.post('/:id/settings', optionalAuth, async (req: Request, res: Response): 
     
     mqtt.publish(topic, settings);
     
-    console.log(`Settings updated for ${id}:`, settings);
+    logger.info(`Settings updated for ${id}:`, settings);
     res.json({ ok: true, settings });
   } catch (error) {
-    console.error('Error updating settings:', error);
+    logger.error('Error updating settings:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

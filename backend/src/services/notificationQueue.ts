@@ -4,6 +4,7 @@
  */
 
 import { db } from './database';
+import { logger } from '../utils/logger';
 
 interface QueuedNotification {
   id: string;
@@ -26,7 +27,7 @@ class NotificationQueueService {
   constructor() {
     // Start processing queue every 30 seconds
     setInterval(() => this.processQueue(), this.retryIntervalMs);
-    console.log('📬 Notification queue service initialized');
+    logger.info('📬 Notification queue service initialized');
   }
 
   /**
@@ -60,7 +61,7 @@ class NotificationQueueService {
     };
 
     this.queue.push(notification);
-    console.log(`📥 Queued notification: ${id} (queue size: ${this.queue.length})`);
+    logger.info(`📥 Queued notification: ${id} (queue size: ${this.queue.length})`);
 
     // Try to process immediately
     this.processQueue();
@@ -87,7 +88,7 @@ class NotificationQueueService {
       return;
     }
 
-    console.log(`📤 Processing ${readyNotifications.length} queued notifications...`);
+    logger.info(`📤 Processing ${readyNotifications.length} queued notifications...`);
 
     for (const notification of readyNotifications) {
       try {
@@ -105,7 +106,7 @@ class NotificationQueueService {
 
           // Remove from queue
           this.queue = this.queue.filter(n => n.id !== notification.id);
-          console.log(`✅ Notification sent: ${notification.id}`);
+          logger.info(`✅ Notification sent: ${notification.id}`);
         } else {
           // Increment attempts and schedule retry
           notification.attempts++;
@@ -129,15 +130,15 @@ class NotificationQueueService {
 
             // Max attempts reached, remove from queue
             this.queue = this.queue.filter(n => n.id !== notification.id);
-            console.log(`❌ Notification failed after ${notification.attempts} attempts: ${notification.id}`);
+            logger.info(`❌ Notification failed after ${notification.attempts} attempts: ${notification.id}`);
           } else {
             // Schedule next retry
             notification.nextRetryAt = new Date(Date.now() + this.retryIntervalMs);
-            console.log(`⏱️  Retry scheduled for ${notification.id} (attempt ${notification.attempts + 1}/${notification.maxAttempts})`);
+            logger.info(`⏱️  Retry scheduled for ${notification.id} (attempt ${notification.attempts + 1}/${notification.maxAttempts})`);
           }
         }
       } catch (error) {
-        console.error(`❌ Error processing notification ${notification.id}:`, error);
+        logger.error(`❌ Error processing notification ${notification.id}:`, error);
         notification.attempts++;
         notification.nextRetryAt = new Date(Date.now() + this.retryIntervalMs);
       }
@@ -159,13 +160,13 @@ class NotificationQueueService {
       });
 
       if (!statusResponse.ok) {
-        console.log(`⚠️  WhatsApp backend not available`);
+        logger.info(`⚠️  WhatsApp backend not available`);
         return false;
       }
 
       const status = await statusResponse.json();
       if (!(status as any).connected) {
-        console.log(`⚠️  WhatsApp not connected yet`);
+        logger.info(`⚠️  WhatsApp not connected yet`);
         return false;
       }
 
@@ -222,7 +223,7 @@ class NotificationQueueService {
   clearQueue() {
     const count = this.queue.length;
     this.queue = [];
-    console.log(`🗑️  Cleared ${count} notifications from queue`);
+    logger.info(`🗑️  Cleared ${count} notifications from queue`);
   }
 }
 

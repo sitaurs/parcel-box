@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Home, Package, ImageIcon, Settings, LogOut, Wifi, WifiOff, Moon, Sun, Bell, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -235,7 +235,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
       {/* Mobile Bottom Navigation - Enhanced with smooth animations */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-700/50 z-50 safe-area-bottom">
         <div className="grid grid-cols-5 h-16 px-2">
-          {navItems.map((item, index) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}

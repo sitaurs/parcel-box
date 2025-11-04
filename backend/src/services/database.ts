@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
+import { logger } from '../utils/logger';
 
 const DATA_DIR = path.join(__dirname, '../../data');
 
@@ -89,7 +90,7 @@ class JsonDatabase {
       const data = await fs.readFile(filePath, 'utf-8');
       return JSON.parse(data);
     } catch (error) {
-      console.error(`Error reading ${filename}:`, error);
+      logger.error(`Error reading ${filename}:`, error);
       throw error;
     }
   }
@@ -99,7 +100,7 @@ class JsonDatabase {
       const filePath = path.join(DATA_DIR, filename);
       await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
     } catch (error) {
-      console.error(`Error writing ${filename}:`, error);
+      logger.error(`Error writing ${filename}:`, error);
       throw error;
     }
   }
@@ -500,15 +501,15 @@ export async function initializeDatabase() {
     const users = await db.getUsers();
     
     if (users.length === 0) {
-      console.log('🔧 Creating default admin user...');
+      logger.info('🔧 Creating default admin user...');
       await db.createUser('admin', 'admin123', 'admin');
-      console.log('✅ Default admin created - Username: admin, Password: admin123');
-      console.log('⚠️  PLEASE CHANGE THE DEFAULT PASSWORD IMMEDIATELY!');
+      logger.info('✅ Default admin created - Username: admin, Password: admin123');
+      logger.info('⚠️  PLEASE CHANGE THE DEFAULT PASSWORD IMMEDIATELY!');
     } else {
-      console.log(`✅ Database initialized - ${users.length} user(s) found`);
+      logger.info(`✅ Database initialized - ${users.length} user(s) found`);
     }
   } catch (error) {
-    console.error('❌ Failed to initialize database:', error);
+    logger.error('❌ Failed to initialize database:', error);
     throw error;
   }
 }

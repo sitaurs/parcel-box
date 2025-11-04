@@ -1,0 +1,67 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Production VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            cd /opt/smartparcel
+            git pull origin main
+            
+            # Backend deployment
+            cd backend
+            npm ci --production
+            npm run build
+            pm2 restart smartparcel-backend || pm2 start dist/index.js --name smartparcel-backend
+            
+            # WhatsApp service deployment
+            cd ../wa
+            npm ci --production
+            npm run build
+            pm2 restart smartparcel-wa || pm2 start dist/index.js --name smartparcel-wa
+            
+            # PWA deployment (if served via backend)
+            cd ../pwa
+            npm ci
+            npm run build
+            
+            # Restart services
+            pm2 save
+            echo "✅ Deployment completed successfully"
+
+      - name: Health check
+        run: |
+          sleep 10
+          curl -f ${{ secrets.VPS_HOST }}:8080/health || exit 1
+          echo "✅ Health check passed"
+
+      - name: Notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment to VPS successful"
+          else
+            echo "❌ Deployment to VPS failed"
+          fi

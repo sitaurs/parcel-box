@@ -7,6 +7,7 @@ import { Router, Request, Response } from 'express';
 import { db } from '../services/database';
 import { requireAuth } from '../middleware/auth';
 import bcrypt from 'bcryptjs';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -72,7 +73,7 @@ router.get('/users', requireAuth, requireAdmin, async (req: Request, res: Respon
 
     res.json({ users: safeUsers });
   } catch (error) {
-    console.error('Error fetching users:', error);
+    logger.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
@@ -104,7 +105,7 @@ router.get('/users/:id', requireAuth, requireAdmin, async (req: Request, res: Re
 
     res.json(safeUser);
   } catch (error) {
-    console.error('Error fetching user:', error);
+    logger.error('Error fetching user:', error);
     res.status(500).json({ error: 'Failed to fetch user' });
   }
 });
@@ -209,14 +210,14 @@ router.post('/users', requireAuth, requireAdmin, async (req: Request, res: Respo
       updatedAt: user.updatedAt,
     };
 
-    console.log(`✅ Admin created user: ${username} (${role || 'user'})`);
+    logger.info(`✅ Admin created user: ${username} (${role || 'user'})`);
 
     res.status(201).json({ 
       message: 'User created successfully',
       user: safeUser 
     });
   } catch (error) {
-    console.error('Error creating user:', error);
+    logger.error('Error creating user:', error);
     res.status(500).json({ error: 'Failed to create user' });
   }
 });
@@ -294,14 +295,14 @@ router.put('/users/:id', requireAuth, requireAdmin, async (req: Request, res: Re
       updatedAt: updatedUser.updatedAt,
     };
 
-    console.log(`✅ Admin updated user: ${updatedUser.username}`);
+    logger.info(`✅ Admin updated user: ${updatedUser.username}`);
 
     res.json({ 
       message: 'User updated successfully',
       user: safeUser 
     });
   } catch (error) {
-    console.error('Error updating user:', error);
+    logger.error('Error updating user:', error);
     res.status(500).json({ error: 'Failed to update user' });
   }
 });
@@ -335,7 +336,7 @@ router.delete('/users/:id', requireAuth, requireAdmin, async (req: Request, res:
       return;
     }
 
-    console.log(`✅ Admin deleted user: ${user.username}`);
+    logger.info(`✅ Admin deleted user: ${user.username}`);
 
     res.json({ 
       message: 'User deleted successfully',
@@ -345,7 +346,7 @@ router.delete('/users/:id', requireAuth, requireAdmin, async (req: Request, res:
       }
     });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    logger.error('Error deleting user:', error);
     res.status(500).json({ error: 'Failed to delete user' });
   }
 });
@@ -397,7 +398,7 @@ router.get('/stats', requireAuth, requireAdmin, async (req: Request, res: Respon
 
     res.json(stats);
   } catch (error) {
-    console.error('Error fetching admin stats:', error);
+    logger.error('Error fetching admin stats:', error);
     res.status(500).json({ error: 'Failed to fetch statistics' });
   }
 });
