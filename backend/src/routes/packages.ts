@@ -9,6 +9,8 @@ import fs from 'fs/promises';
 import { emitPackageNew } from '../services/socket';
 import { sendPackagePushNotification } from '../services/push';
 import { notificationQueue } from '../services/notificationQueue';
+import { logger } from '../utils/logger';
+import { validate, createPackageSchema, updatePackageSchema } from '../middleware/validation';
 
 const router = express.Router();
 
@@ -126,14 +128,13 @@ router.post(
         return;
       }
 
-      // Generate thumbnail
-      const thumbPath = await generateThumbnail(req.file.path);
-
-      // Convert paths to URLs
+      // OPTIMIZED: Convert path to URL immediately (no heavy work)
       const photoUrl = pathToUrl(req.file.path, path.resolve(config.storage.dir));
-      const thumbUrl = pathToUrl(thumbPath, path.resolve(config.storage.dir));
+      
+      // OPTIMIZED: Use placeholder thumbnail URL, generate later
+      const thumbUrl = photoUrl.replace(/\.(jpg|jpeg|png)$/i, '_thumb.jpg');
 
-      // Update device status
+      // OPTIMIZED: Quick device status update
       let device = await db.getDeviceById(deviceId);
       if (device) {
         await db.updateDevice(deviceId, {
@@ -152,7 +153,7 @@ router.post(
         });
       }
 
-      // Create package record
+      // OPTIMIZED: Quick package creation
       const pkg = await db.createPackage({
         deviceId,
         tsDetected: ts ? new Date(ts).toISOString() : new Date().toISOString(),
@@ -168,73 +169,7 @@ router.post(
         waNotified: false,
       });
 
-      // Emit Socket.IO event
-      emitPackageNew({
-        id: pkg.id,
-        deviceId: pkg.deviceId,
-        ts: pkg.tsDetected,
-        photoUrl: pkg.photoUrl || '',
-        thumbUrl: pkg.thumbUrl || '',
-      });
-
-      // Send push notification
-      sendPackagePushNotification({
-        id: pkg.id,
-        deviceId: pkg.deviceId,
-        photoUrl: pkg.photoUrl || undefined,
-      }).catch((err) => console.error('Push notification error:', err));
-
-      // Queue WhatsApp notification (will retry if backend not ready)
-      try {
-        // Load WhatsApp settings from frontend (stored by user)
-        const fs2 = await import('fs/promises');
-        let recipients: string[] = [];
-        let notificationEnabled = false;
-
-        try {
-          // Try to read settings from a shared file
-          const settingsPath = './data/whatsapp-settings.json';
-          const settingsData = await fs2.readFile(settingsPath, 'utf-8');
-          const settings = JSON.parse(settingsData);
-          recipients = settings.recipients || [];
-          notificationEnabled = settings.enabled || false;
-        } catch (err) {
-          // If file doesn't exist or error, skip notifications
-          console.log('⚠️  No WhatsApp settings found, skipping notification');
-        }
-
-        // Only send if enabled and has recipients
-        if (notificationEnabled && recipients.length > 0) {
-          const photoBuffer = await fs.readFile(req.file.path);
-          
-          const caption = `📦 *New Package Detected!*\n\n` +
-            `🆔 Package ID: ${pkg.id}\n` +
-            `📍 Device: ${pkg.deviceId}\n` +
-            `📅 Time: ${new Date(pkg.tsDetected).toLocaleString('id-ID')}\n` +
-            `📏 Distance: ${distanceCm ? `${distanceCm} cm` : 'N/A'}`;
-          
-          // Enqueue notification for each recipient
-          for (const recipient of recipients) {
-            notificationQueue.enqueue('package', recipient, {
-              caption,
-              photoBase64: photoBuffer.toString('base64'),
-              packageData: {
-                id: pkg.id,
-                deviceId: pkg.deviceId,
-                timestamp: pkg.tsDetected,
-              },
-            });
-          }
-          
-          console.log(`📬 WhatsApp notification queued for ${recipients.length} recipient(s)`);
-        } else {
-          console.log('⚠️  WhatsApp notifications disabled or no recipients configured');
-        }
-      } catch (waError) {
-        console.error('❌ Error queuing WhatsApp notification:', waError);
-        // Don't fail the request if queue fails
-      }
-
+      // ⚡ RESPOND IMMEDIATELY to prevent ESP32 timeout
       res.status(200).json({
         id: pkg.id,
         deviceId: pkg.deviceId,
@@ -242,8 +177,78 @@ router.post(
         photoUrl: pkg.photoUrl,
         thumbUrl: pkg.thumbUrl,
       });
+
+      // 🔥 DEFERRED: Background processing (async, no await)
+      setImmediate(async () => {
+        try {
+          // Generate thumbnail asynchronously
+          const actualThumbPath = await generateThumbnail(req.file!.path);
+          const actualThumbUrl = pathToUrl(actualThumbPath, path.resolve(config.storage.dir));
+          
+          // Update package with real thumbnail
+          await db.updatePackage(pkg.id, { thumbUrl: actualThumbUrl });
+
+          // Emit Socket.IO event
+          emitPackageNew({
+            id: pkg.id,
+            deviceId: pkg.deviceId,
+            ts: pkg.tsDetected,
+            photoUrl: pkg.photoUrl || '',
+            thumbUrl: actualThumbUrl || '',
+          });
+
+          // Send push notification
+          sendPackagePushNotification({
+            id: pkg.id,
+            deviceId: pkg.deviceId,
+            photoUrl: pkg.photoUrl || undefined,
+          }).catch((err) => logger.error('Push notification error:', err));
+
+          // Queue WhatsApp notification
+          const fs2 = await import('fs/promises');
+          let recipients: string[] = [];
+          let notificationEnabled = false;
+
+          try {
+            const settingsPath = './data/whatsapp-settings.json';
+            const settingsData = await fs2.readFile(settingsPath, 'utf-8');
+            const settings = JSON.parse(settingsData);
+            recipients = settings.recipients || [];
+            notificationEnabled = settings.enabled || false;
+          } catch (err) {
+            logger.info('⚠️  No WhatsApp settings found, skipping notification');
+          }
+
+          if (notificationEnabled && recipients.length > 0) {
+            const photoBuffer = await fs.readFile(req.file!.path);
+            
+            const caption = `📦 *New Package Detected!*\n\n` +
+              `🆔 Package ID: ${pkg.id}\n` +
+              `📍 Device: ${pkg.deviceId}\n` +
+              `📅 Time: ${new Date(pkg.tsDetected).toLocaleString('id-ID')}\n` +
+              `📏 Distance: ${distanceCm ? `${distanceCm} cm` : 'N/A'}`;
+            
+            for (const recipient of recipients) {
+              notificationQueue.enqueue('package', recipient, {
+                caption,
+                photoBase64: photoBuffer.toString('base64'),
+                packageData: {
+                  id: pkg.id,
+                  deviceId: pkg.deviceId,
+                  timestamp: pkg.tsDetected,
+                },
+              });
+            }
+            
+            logger.info(`📬 WhatsApp notification queued for ${recipients.length} recipient(s)`);
+          }
+        } catch (bgError) {
+          logger.error('❌ Background processing error:', bgError);
+        }
+      });
+
     } catch (error) {
-      console.error('Error uploading package:', error);
+      logger.error('Error uploading package:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }
@@ -321,7 +326,7 @@ router.get('/', optionalAuth, async (req: Request, res: Response): Promise<void>
       },
     });
   } catch (error) {
-    console.error('Error fetching packages:', error);
+    logger.error('Error fetching packages:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -353,7 +358,7 @@ router.get('/:id', optionalAuth, async (req: Request, res: Response): Promise<vo
       } : null,
     });
   } catch (error) {
-    console.error('Error fetching package:', error);
+    logger.error('Error fetching package:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
