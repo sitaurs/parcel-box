@@ -107,7 +107,11 @@ class JsonDatabase {
   // Users
   async getUsers(): Promise<User[]> {
     const data = await this.readFile<{ users: User[] }>('users.json');
-    return data.users;
+    // Handle edge case: file might be [] instead of {users:[]}
+    if (Array.isArray(data)) {
+      return data as User[];
+    }
+    return data.users || [];
   }
 
   async getUserByUsername(username: string): Promise<User | null> {
@@ -183,7 +187,11 @@ class JsonDatabase {
   // Packages
   async getPackages(): Promise<Package[]> {
     const data = await this.readFile<{ packages: Package[] }>('packages.json');
-    return data.packages;
+    // Handle edge case: file might be [] instead of {packages:[]}
+    if (Array.isArray(data)) {
+      return data as Package[];
+    }
+    return data.packages || [];
   }
 
   async getPackageById(id: string): Promise<Package | null> {
@@ -236,7 +244,11 @@ class JsonDatabase {
   // Devices
   async getDevices(): Promise<Device[]> {
     const data = await this.readFile<{ devices: Device[] }>('devices.json');
-    return data.devices;
+    // Handle edge case: file might be [] instead of {devices:[]}
+    if (Array.isArray(data)) {
+      return data as Device[];
+    }
+    return data.devices || [];
   }
 
   async getDeviceById(id: string): Promise<Device | null> {
@@ -289,7 +301,11 @@ class JsonDatabase {
   // Events
   async getEvents(): Promise<Event[]> {
     const data = await this.readFile<{ events: Event[] }>('events.json');
-    return data.events;
+    // Handle edge case: file might be [] instead of {events:[]}
+    if (Array.isArray(data)) {
+      return data as Event[];
+    }
+    return data.events || [];
   }
 
   async createEvent(eventData: Omit<Event, 'id' | 'createdAt'>): Promise<Event> {
@@ -317,7 +333,11 @@ class JsonDatabase {
   // Push Subscriptions
   async getPushSubscriptions(): Promise<PushSubscription[]> {
     const data = await this.readFile<{ pushSubscriptions: PushSubscription[] }>('pushSubscriptions.json');
-    return data.pushSubscriptions;
+    // Handle edge case: file might be [] instead of {pushSubscriptions:[]}
+    if (Array.isArray(data)) {
+      return data as PushSubscription[];
+    }
+    return data.pushSubscriptions || [];
   }
 
   async getPushSubscriptionByEndpoint(endpoint: string): Promise<PushSubscription | null> {
@@ -388,7 +408,11 @@ class JsonDatabase {
   async getNotifications(): Promise<Notification[]> {
     try {
       const data = await this.readFile<{ notifications: Notification[] }>('notifications.json');
-      return data.notifications;
+      // Handle edge case: file might be [] instead of {notifications:[]}
+      if (Array.isArray(data)) {
+        return data as Notification[];
+      }
+      return data.notifications || [];
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         return [];
