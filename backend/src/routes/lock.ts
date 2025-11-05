@@ -122,20 +122,8 @@ router.post('/:id/unlock', optionalAuth, async (req: Request, res: Response): Pr
 
       // PIN valid, send unlock command to ESP8266 via MQTT
       const mqtt = getMQTTService();
-      const mqttClient = (mqtt as any).client;
-      
-      if (mqttClient && mqttClient.connected) {
-        const topic = 'smartparcel/lock/control';
-        const payload = JSON.stringify({ 
-          action: 'unlock', 
-          pin, 
-          timestamp: Date.now() 
-        });
-        mqttClient.publish(topic, payload);
-        logger.info(`📤 [MQTT] Published unlock command to ${topic} with PIN validation`);
-      } else {
-        logger.warn(`⚠️ [MQTT] MQTT client not connected, unlock command not sent`);
-      }
+      mqtt.unlockDoor(pin);
+      logger.info(`📤 [MQTT] Published unlock command to ESP8266 with PIN validation`);
     } else {
       // Keypad unlock - PIN validation is delegated to device firmware
       // Backend logs the unlock event for audit trail

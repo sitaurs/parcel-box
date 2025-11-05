@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   Camera, Zap, Volume2, Lock, Play, Square, Settings as SettingsIcon,
-  Activity, Wifi, WifiOff, Save, RotateCcw, AlertCircle
+  Activity, Wifi, WifiOff, Save, RotateCcw, AlertCircle, Package, ArrowDown
 } from 'lucide-react';
 import * as api from '../lib/api';
 import { socket } from '../lib/socket';
@@ -250,7 +250,7 @@ export function DeviceControl() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ method: 'app' })
+        body: JSON.stringify({ method: 'app', pin: '432432' }) // Default PIN for app unlock
       });
       
       if (!response.ok) {
@@ -543,12 +543,44 @@ export function DeviceControl() {
               </div>
             </div>
 
-            {/* Enhanced Lock Control - API Based */}
+            {/* Package Holder Control (ESP32-CAM Solenoid) */}
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-2xl p-6 shadow-lg border border-purple-200 dark:border-purple-700">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
+                  <Package className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
+                  Penahan Paket
+                </h3>
+                <div className="px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+                  <span className="text-xs font-bold uppercase">ESP32-CAM</span>
+                </div>
+              </div>
+              
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                Solenoid penahan paket untuk foto. Setelah foto, buka penahan agar paket jatuh ke bawah.
+              </p>
+              
+              <button
+                onClick={() => sendControl({ lock: { open: true } })}
+                disabled={!isOnline || loading}
+                className="w-full py-4 px-6 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <ArrowDown className="w-5 h-5" />
+                  <span>Buka Penahan</span>
+                </div>
+              </button>
+              
+              <p className="mt-3 text-xs text-gray-500 dark:text-gray-400 text-center">
+                Paket akan jatuh setelah penahan dibuka
+              </p>
+            </div>
+
+            {/* Door Lock Control (ESP8266 Solenoid) - API-based */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
                   <Lock className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
-                  Smart Door Lock
+                  Kunci Pintu Box
                 </h3>
                 {/* Lock Status Indicator */}
                 <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full ${
@@ -558,13 +590,16 @@ export function DeviceControl() {
                 }`}>
                   <Lock className={`w-4 h-4 ${lockState.locked ? '' : 'transform rotate-12'}`} />
                   <span className="text-xs font-bold uppercase">
-                    {lockState.locked ? 'Locked' : 'Unlocked'}
+                    {lockState.locked ? 'Terkunci' : 'Terbuka'}
                   </span>
                 </div>
               </div>
               
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                Control door lock via API - Logged events visible in history
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
+                Kontrol kunci pintu box (ESP8266) via API
+              </p>
+              <p className="text-gray-500 dark:text-gray-500 text-xs mb-4">
+                PIN: <span className="font-mono bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">432432</span>
               </p>
               
               <div className="grid grid-cols-2 gap-3">
@@ -575,7 +610,7 @@ export function DeviceControl() {
                 >
                   <div className="flex items-center justify-center space-x-2">
                     <Lock className="w-5 h-5 transform rotate-12" />
-                    <span>Unlock</span>
+                    <span>Buka Kunci</span>
                   </div>
                 </button>
                 <button
@@ -585,50 +620,16 @@ export function DeviceControl() {
                 >
                   <div className="flex items-center justify-center space-x-2">
                     <Lock className="w-5 h-5" />
-                    <span>Lock</span>
+                    <span>Kunci</span>
                   </div>
                 </button>
               </div>
               
               {lockState.lastAction && lockState.timestamp && (
                 <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
-                  Last action: <span className="font-semibold">{lockState.lastAction}</span> at {new Date(lockState.timestamp).toLocaleTimeString()}
+                  Aksi terakhir: <span className="font-semibold">{lockState.lastAction === 'lock' ? 'Kunci' : 'Buka'}</span> pada {new Date(lockState.timestamp).toLocaleTimeString()}
                 </div>
               )}
-            </div>
-
-            {/* Old MQTT Lock Control - Keep for backward compatibility */}
-            <div className="bg-white/50 dark:bg-gray-800/50 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-                <Lock className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
-                Door Lock (Direct MQTT)
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 text-xs mb-3">
-                Legacy control - Use Smart Door Lock above for logged events
-              </p>
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  onClick={() => sendControl({ lock: { pulse: true, ms: settings.lock.ms } })}
-                  disabled={!isOnline || loading}
-                  className="py-3 px-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95 text-sm"
-                >
-                  Pulse
-                </button>
-                <button
-                  onClick={() => sendControl({ lock: { open: true } })}
-                  disabled={!isOnline || loading}
-                  className="py-3 px-3 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95 text-sm"
-                >
-                  Open
-                </button>
-                <button
-                  onClick={() => sendControl({ lock: { closed: true } })}
-                  disabled={!isOnline || loading}
-                  className="py-3 px-3 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold shadow-md disabled:opacity-50 transition-all hover:scale-105 active:scale-95 text-sm"
-                >
-                  Lock
-                </button>
-              </div>
             </div>
 
             {/* Stop Buzzer Control */}

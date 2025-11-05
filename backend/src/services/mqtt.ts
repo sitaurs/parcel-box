@@ -349,6 +349,31 @@ class MQTTService {
   }
 
   /**
+   * Send unlock command to ESP8266 door lock with PIN validation
+   */
+  unlockDoor(pin: string): void {
+    const topic = 'smartparcel/lock/control';
+    const payload = {
+      action: 'unlock',
+      pin: pin,
+      timestamp: Date.now()
+    };
+    this.publish(topic, payload);
+  }
+
+  /**
+   * Sync PIN to ESP8266 door lock
+   */
+  syncLockPin(newPin: string): void {
+    const topic = 'smartparcel/lock/pin';
+    const payload = {
+      pin: newPin,
+      timestamp: Date.now()
+    };
+    this.publish(topic, payload);
+  }
+
+  /**
    * Trigger manual capture
    */
   capturePhoto(deviceId: string): void {
