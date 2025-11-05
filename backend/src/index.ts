@@ -16,10 +16,10 @@ import { register as metricsRegister } from './services/metrics';
 import authRouter from './routes/auth';
 import packagesRouter from './routes/packages';
 import eventsRouter from './routes/events';
-import devicesRouter from './routes/devices';
+import devicesRouter from './routes/devices'; // includes lockRouter
 import pushRouter from './routes/push';
 import whatsappRouter from './routes/whatsapp';
-import lockRouter from './routes/lock';
+// lockRouter is now imported inside devicesRouter
 import notificationsRouter from './routes/notifications';
 import adminRouter from './routes/admin';
 import { logger } from './utils/logger';
@@ -137,9 +137,7 @@ app.use('/api/v1/wa', whatsappRouter);
 app.use('/api/v1/notifications', notificationsRouter);
 app.use('/api/v1/admin', adminRouter);
 
-// Device routes (includes lock/unlock endpoints)
-// IMPORTANT: lockRouter must be registered BEFORE devicesRouter to handle /:id/lock and /:id/unlock
-app.use('/api/v1/devices', lockRouter);
+// Device routes (includes lock/unlock endpoints mounted internally)
 app.use('/api/v1/devices', devicesRouter);
 
 // Root endpoint
