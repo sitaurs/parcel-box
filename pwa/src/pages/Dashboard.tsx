@@ -80,19 +80,26 @@ export function Dashboard() {
     try {
       setLoading(true);
       
+      // HARDCODED: Single device "box-01" (app designed for 1 box only)
+      const singleDevice: api.Device = {
+        id: 'box-01',
+        name: 'Smart Box 01',
+        status: 'online',
+        lastSeen: new Date().toISOString(),
+        fwVersion: 'esp32cam-allinone'
+      };
+      
       // Use Promise.allSettled for better error handling
       const results = await Promise.allSettled([
-        api.getDevices(),
         api.getPackages({ limit: 10 }), // Latest 10 for display
         api.getPackages({}) // All packages for stats count
       ]);
 
       // Extract with fallbacks
-      const devicesData = results[0].status === 'fulfilled' ? results[0].value : [];
-      const packagesData = results[1].status === 'fulfilled' ? results[1].value : [];
-      const allPackagesCount = results[2].status === 'fulfilled' ? results[2].value : [];
+      const packagesData = results[0].status === 'fulfilled' ? results[0].value : [];
+      const allPackagesCount = results[1].status === 'fulfilled' ? results[1].value : [];
 
-      setDevices(devicesData);
+      setDevices([singleDevice]); // Always 1 device
       
       const today = new Date().toDateString();
       const todayPkgs = allPackagesCount.filter(p => new Date(p.tsDetected).toDateString() === today);

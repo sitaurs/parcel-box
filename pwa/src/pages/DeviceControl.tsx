@@ -32,7 +32,8 @@ interface LockState {
 }
 
 export function DeviceControl() {
-  const { deviceId } = useParams<{ deviceId: string }>();
+  // HARDCODED: Always use "box-01" (app designed for 1 box only)
+  const deviceId = 'box-01';
   
   const [device, setDevice] = useState<api.Device | null>(null);
   const [settings, setSettings] = useState<DeviceSettings>({
