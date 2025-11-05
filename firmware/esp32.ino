@@ -229,7 +229,7 @@ bool captureAndUploadWithRetry(const char* reason, float cm){
     if (!fb){
       mqtt.publish(T_PHSTAT.c_str(), "{\"ok\":false,\"err\":\"no_frame\"}", false);
       delay(500 * attempt);
-      continue;
+      continue; // Retry if no frame captured
     }
 
     String meta = String("{\"deviceId\":\"")+DEV_ID+
@@ -258,9 +258,20 @@ bool captureAndUploadWithRetry(const char* reason, float cm){
 
     mqtt.publish(T_PHSTAT.c_str(), ack.c_str(), false);
     esp_camera_fb_return(fb);
-    if (ur.ok) return true;
-    delay(700 * attempt);
+    
+    // FIX: Stop immediately if upload successful
+    if (ur.ok) {
+      Serial.printf("[PHOTO] Upload success on attempt %d (HTTP %d)\n", attempt, ur.http);
+      return true; // SUCCESS - stop retrying
+    }
+    
+    // Failed, retry only if attempts remaining
+    Serial.printf("[PHOTO] Upload failed attempt %d (HTTP %d), retrying...\n", attempt, ur.http);
+    if (attempt < MAX_TRY) {
+      delay(700 * attempt); // Exponential backoff
+    }
   }
+  Serial.println("[PHOTO] All upload attempts failed");
   return false;
 }
 

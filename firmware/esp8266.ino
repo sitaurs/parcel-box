@@ -13,12 +13,12 @@
 #include <ArduinoJson.h>
 
 // ----------------- WiFi & MQTT Config -----------------
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+const char* ssid = "ppp";  // Same WiFi as ESP32-CAM
+const char* password = "12345678";  // Same WiFi as ESP32-CAM
 const char* mqtt_server = "13.213.57.228";  // Your VPS IP
 const int mqtt_port = 1883;
-const char* mqtt_user = "";  // If needed
-const char* mqtt_pass = "";  // If needed
+const char* mqtt_user = "smartbox";  // MQTT authentication
+const char* mqtt_pass = "engganngodinginginmcu";  // MQTT authentication
 
 // MQTT Topics
 const char* topic_control = "smartparcel/lock/control";  // Subscribe: receive unlock commands from PWA
@@ -184,7 +184,7 @@ void publishLockStatus(const char* status, const char* method) {
 }
 
 bool reconnectMQTT() {
-  if (mqttClient.connect("ESP8266_Lock")) {
+  if (mqttClient.connect("ESP8266_Lock", mqtt_user, mqtt_pass)) {
     // Subscribe to topics
     mqttClient.subscribe(topic_control);
     mqttClient.subscribe(topic_pin_sync);
