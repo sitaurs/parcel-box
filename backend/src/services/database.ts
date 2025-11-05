@@ -3,7 +3,8 @@ import path from 'path';
 import bcrypt from 'bcryptjs';
 import { logger } from '../utils/logger';
 
-const DATA_DIR = path.join(__dirname, '../../data');
+// Data directory is in the project root, not in dist
+const DATA_DIR = path.join(__dirname, '../../../data');
 
 export interface User {
   id: string;
