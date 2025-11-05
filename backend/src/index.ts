@@ -23,13 +23,21 @@ import notificationsRouter from './routes/notifications';
 import adminRouter from './routes/admin';
 import { logger } from './utils/logger';
 
+console.log('🚀 [STARTUP] Starting Smart Parcel Backend...');
+console.log('🚀 [STARTUP] Node version:', process.version);
+console.log('🚀 [STARTUP] ENV:', process.env.NODE_ENV);
+console.log('🚀 [STARTUP] PORT:', process.env.PORT);
+
 const app = express();
 const server = http.createServer(app);
 
+console.log('🚀 [STARTUP] Express app created');
+
 // Initialize Socket.IO
 const io = initializeSocket(server);
+console.log('🚀 [STARTUP] Socket.IO initialized');
 
-// Initialize JSON Database
+// Initialize JSON Database (async but non-blocking)
 logger.info('🗄️  Initializing JSON Database...');
 initializeDatabase().then(() => {
   logger.info('✅ Database ready');
@@ -37,6 +45,8 @@ initializeDatabase().then(() => {
   logger.error('❌ Database initialization failed:', err);
   process.exit(1);
 });
+
+console.log('🚀 [STARTUP] Database init started');
 
 // Initialize MQTT
 if (config.mqtt.enabled) {
@@ -47,9 +57,12 @@ if (config.mqtt.enabled) {
     username: config.mqtt.username,
     password: config.mqtt.password,
   });
+  console.log('🚀 [STARTUP] MQTT init started');
 } else {
   logger.info('⚠️  MQTT disabled in configuration');
 }
+
+console.log('🚀 [STARTUP] Setting up middleware...');
 
 // Middleware
 app.use(helmet({
@@ -61,6 +74,8 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+console.log('🚀 [STARTUP] Middleware configured');
 
 // Request logging
 app.use((req, res, next) => {
@@ -123,6 +138,8 @@ app.get('/metrics', async (req: Request, res: Response) => {
 });
 logger.info('📊 Metrics endpoint available at /metrics');
 
+console.log('🚀 [STARTUP] Configuring routes...');
+
 // Apply rate limiting to all API routes
 app.use('/api/', apiLimiter);
 logger.info('🛡️  Rate limiting enabled: 100 req/15min per IP');
@@ -136,6 +153,8 @@ app.use('/api/v1/wa', whatsappRouter);
 app.use('/api/v1/notifications', notificationsRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/devices', devicesRouter); // includes /:id/unlock
+
+console.log('🚀 [STARTUP] Routes configured');
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -159,6 +178,8 @@ app.get('/', (req: Request, res: Response) => {
   });
 });
 
+console.log('🚀 [STARTUP] Error handlers configured');
+
 // 404 handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({ error: 'Not found' });
@@ -172,8 +193,11 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   });
 });
 
+console.log('🚀 [STARTUP] Calling server.listen() on port', config.port);
+
 // Start server
 server.listen(config.port, () => {
+  console.log('🚀 [STARTUP] ✅ server.listen() callback executed!');
   logger.info('╔════════════════════════════════════════════╗');
   logger.info('║   Smart Parcel Box - Backend Server       ║');
   logger.info('╚════════════════════════════════════════════╝');
