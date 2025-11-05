@@ -239,19 +239,23 @@ export function DeviceControl() {
     }
   }, [deviceId]);
 
-  // Unlock door (NEW - API-based)
+  // Unlock door - via control endpoint with action=unlock
   const unlockDoor = useCallback(async () => {
     if (!deviceId) return;
     setLoading(true);
     try {
       const apiUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
-      const response = await fetch(`${apiUrl}/devices/${deviceId}/unlock`, {
+      const response = await fetch(`${apiUrl}/devices/${deviceId}/control`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ method: 'app', pin: '432432' }) // Default PIN for app unlock
+        body: JSON.stringify({ 
+          deviceId,
+          action: 'unlock',
+          pin: '432432'
+        })
       });
       
       if (!response.ok) {
@@ -260,6 +264,7 @@ export function DeviceControl() {
       
       const result = await response.json();
       console.log('✅ Door unlocked:', result);
+      setLastAck({ ok: true, action: 'unlock', ...result });
     } catch (error) {
       console.error('❌ Unlock error:', error);
       setLastAck({ ok: false, action: 'unlock', error: String(error) });

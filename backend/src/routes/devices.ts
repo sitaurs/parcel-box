@@ -141,7 +141,36 @@ router.post(
       return;
     }
 
-    // Publish to MQTT
+    // SPECIAL CASE: Door unlock via control endpoint
+    if ((command as any).action === 'unlock' || req.body.action === 'unlock') {
+      const { pin } = req.body;
+      
+      // Validate PIN
+      if (!pin || pin !== '432432') {
+        logger.warn(`🚫 [UNLOCK] Invalid PIN for ${id}`);
+        res.status(401).json({ error: 'Invalid PIN' });
+        return;
+      }
+
+      // Send MQTT unlock to ESP8266
+      const mqtt = getMQTTService();
+      mqtt.unlockDoor(pin);
+      logger.info(`📤 [MQTT] Unlock command sent to ESP8266 via control endpoint`);
+
+      // Log event
+      const event = await db.createEvent({
+        type: 'UNLOCK',
+        deviceId: id,
+        packageId: null,
+        ts: new Date().toISOString(),
+        data: { method: 'app', pinUsed: true, timestamp: Date.now() },
+      });
+
+      res.json({ ok: true, status: 'unlocked', event });
+      return;
+    }
+
+    // Normal control command - Publish to MQTT
     const mqtt = getMQTTService();
     const topic = `smartparcel/${id}/control`;
     
