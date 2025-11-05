@@ -219,6 +219,19 @@ server.listen(config.port, () => {
   console.log('🚀 [STARTUP] ✅✅✅ ALL DONE! Server is ready!');
 });
 
+// Prevent process exit on uncaught errors
+process.on('uncaughtException', (error) => {
+  console.error('🔴 [FATAL] Uncaught Exception:', error);
+  logger.error('Uncaught Exception:', error);
+  // Don't exit - keep server running
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🔴 [FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error('Unhandled Rejection:', { reason, promise });
+  // Don't exit - keep server running
+});
+
 // Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully...');
