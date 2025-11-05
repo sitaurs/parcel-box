@@ -142,7 +142,8 @@ router.post(
     }
 
     // SPECIAL CASE: Door unlock via control endpoint
-    logger.info(`🔍 [DEBUG] command:`, command, `req.body:`, req.body);
+    logger.info(`🔍 [DEBUG] command=${JSON.stringify(command)} req.body=${JSON.stringify(req.body)}`);
+    logger.info(`🔍 [DEBUG] Check: command.action=${ (command as any).action} req.body.action=${req.body.action}`);
     if ((command as any).action === 'unlock' || req.body.action === 'unlock') {
       const { pin } = req.body;
       
