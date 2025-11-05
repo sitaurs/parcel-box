@@ -82,9 +82,28 @@ export const deviceStatusSchema = z.object({
 });
 
 export const deviceControlSchema = z.object({
-  deviceId: z.string().min(1, 'Device ID is required'),
-  action: z.enum(['lock', 'unlock', 'lamp_on', 'lamp_off', 'buzzer', 'capture', 'reboot']),
-});
+  // Legacy format (still supported)
+  deviceId: z.string().min(1, 'Device ID is required').optional(),
+  action: z.enum(['lock', 'unlock', 'lamp_on', 'lamp_off', 'buzzer', 'capture', 'reboot']).optional(),
+  
+  // New format (flexible commands)
+  capture: z.boolean().optional(),
+  flash: z.union([
+    z.enum(['on', 'off']),
+    z.object({ pulse: z.boolean(), ms: z.number() })
+  ]).optional(),
+  buzzer: z.object({
+    start: z.boolean().optional(),
+    stop: z.boolean().optional(),
+    ms: z.number().optional()
+  }).optional(),
+  lock: z.object({
+    open: z.boolean().optional(),
+    closed: z.boolean().optional(),
+    pulse: z.boolean().optional(),
+    ms: z.number().optional()
+  }).optional(),
+}).passthrough(); // Allow other fields to pass through
 
 /**
  * Package Schemas
