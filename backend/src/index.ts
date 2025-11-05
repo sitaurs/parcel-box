@@ -132,12 +132,15 @@ logger.info('🛡️  Rate limiting enabled: 100 req/15min per IP');
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/packages', packagesRouter);
 app.use('/api/v1/events', eventsRouter);
-app.use('/api/v1/devices', devicesRouter);
 app.use('/api/v1/push', pushRouter);
 app.use('/api/v1/wa', whatsappRouter);
-app.use('/api/v1/devices', lockRouter);
 app.use('/api/v1/notifications', notificationsRouter);
 app.use('/api/v1/admin', adminRouter);
+
+// Device routes (includes lock/unlock endpoints)
+// IMPORTANT: lockRouter must be registered BEFORE devicesRouter to handle /:id/lock and /:id/unlock
+app.use('/api/v1/devices', lockRouter);
+app.use('/api/v1/devices', devicesRouter);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
