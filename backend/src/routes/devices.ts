@@ -5,12 +5,8 @@ import { getMQTTService } from '../services/mqtt';
 import { logger } from '../utils/logger';
 import { deviceControlLimiter } from '../middleware/rateLimiter';
 import { validate, deviceControlSchema } from '../middleware/validation';
-import lockRouter from './lock'; // Import lock routes
 
 const router = express.Router();
-
-// Mount lock routes FIRST (handles /:id/lock, /:id/unlock, etc.)
-router.use('/', lockRouter);
 
 /**
  * GET /api/v1/devices
