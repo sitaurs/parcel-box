@@ -74,53 +74,6 @@ router.get('/:id', optionalAuth, async (req: Request, res: Response): Promise<vo
  * POST /api/v1/devices/:id/unlock
  * Unlock door lock (ESP8266 solenoid)
  */
-router.post('/:id/unlock', optionalAuth, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { userId, method = 'app', pin } = req.body;
-
-    const device = await db.getDeviceById(id);
-    if (!device) {
-      res.status(404).json({ error: 'Device not found' });
-      return;
-    }
-
-    // For remote unlock, validate PIN
-    if (method === 'app' || method === 'remote') {
-      if (!pin) {
-        res.status(400).json({ error: 'PIN required' });
-        return;
-      }
-
-      const storedPin = '432432'; // Hardcoded for single box
-      if (pin !== storedPin) {
-        logger.warn(`🚫 [UNLOCK] Invalid PIN attempt for ${id}`);
-        res.status(401).json({ error: 'Invalid PIN' });
-        return;
-      }
-
-      // Send MQTT unlock command to ESP8266
-      const mqtt = getMQTTService();
-      mqtt.unlockDoor(pin);
-      logger.info(`📤 [MQTT] Unlock command sent to ESP8266`);
-    }
-
-    // Log event
-    const event = await db.createEvent({
-      type: 'UNLOCK',
-      deviceId: id,
-      packageId: null,
-      ts: new Date().toISOString(),
-      data: { userId, method, pinUsed: !!pin, timestamp: Date.now() },
-    });
-
-    res.json({ ok: true, status: 'unlocked', event });
-  } catch (error) {
-    logger.error('❌ Unlock error:', error);
-    res.status(500).json({ error: 'Unlock failed' });
-  }
-});
-
 /**
  * POST /api/v1/devices/:id/control
  * Send control command to device
@@ -142,18 +95,13 @@ router.post(
     }
 
     // SPECIAL CASE: Door unlock via control endpoint  
-    console.log('=== CONTROL ENDPOINT ===');
-    console.log('command:', command);
-    console.log('req.body:', req.body);
-    console.log('command.action:', (command as any).action);
-    console.log('req.body.action:', req.body.action);
-    console.log('========================');
-    
+    // Check for unlock action
     if ((command as any).action === 'unlock' || req.body.action === 'unlock') {
       const { pin } = req.body;
       
-      // Validate PIN
-      if (!pin || pin !== '432432') {
+      // Validate PIN (load from env, can be changed without redeploying)
+      const storedPin = process.env.DEFAULT_PIN || '432432'; // Fallback for dev
+      if (!pin || pin !== storedPin) {
         logger.warn(`🚫 [UNLOCK] Invalid PIN for ${id}`);
         res.status(401).json({ error: 'Invalid PIN' });
         return;

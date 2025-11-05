@@ -48,6 +48,10 @@ export function DeviceControl() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'control' | 'settings'>('control');
   const [error, setError] = useState<string | null>(null);
+  
+  // PIN input modal state
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
 
   // Load device data
   useEffect(() => {
@@ -242,6 +246,13 @@ export function DeviceControl() {
   // Unlock door - via control endpoint with action=unlock
   const unlockDoor = useCallback(async () => {
     if (!deviceId) return;
+    
+    // Show PIN modal if no PIN entered yet
+    if (!pinInput) {
+      setShowPinModal(true);
+      return;
+    }
+    
     setLoading(true);
     try {
       const apiUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -254,24 +265,28 @@ export function DeviceControl() {
         body: JSON.stringify({ 
           deviceId,
           action: 'unlock',
-          pin: '432432'
+          pin: pinInput  // Use user input instead of hardcoded
         })
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
       
       const result = await response.json();
       console.log('✅ Door unlocked:', result);
       setLastAck({ ok: true, action: 'unlock', ...result });
+      setPinInput('');  // Clear PIN after successful unlock
+      setShowPinModal(false);
     } catch (error) {
       console.error('❌ Unlock error:', error);
       setLastAck({ ok: false, action: 'unlock', error: String(error) });
+      // Don't clear PIN on error, let user retry
     } finally {
       setLoading(false);
     }
-  }, [deviceId]);
+  }, [deviceId, pinInput]);
 
   // Computed values (memoized)
   const isOnline = useMemo(() => device?.status === 'online', [device?.status]);
@@ -789,6 +804,56 @@ export function DeviceControl() {
           </div>
         )}
       </div>
+
+      {/* PIN Input Modal */}
+      {showPinModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+              <Lock className="w-6 h-6 mr-2 text-indigo-600" />
+              Enter PIN to Unlock
+            </h3>
+            <input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value)}
+              placeholder="Enter PIN (e.g., 432432)"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-white mb-4"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && pinInput) {
+                  unlockDoor();
+                }
+              }}
+            />
+            <div className="flex space-x-3">
+              <button
+                onClick={unlockDoor}
+                disabled={!pinInput || loading}
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {loading ? 'Unlocking...' : 'Unlock'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowPinModal(false);
+                  setPinInput('');
+                }}
+                className="px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+            {lastAck && !lastAck.ok && lastAck.action === 'unlock' && (
+              <p className="mt-3 text-sm text-red-600 dark:text-red-400">
+                ❌ {lastAck.error || 'Unlock failed'}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
