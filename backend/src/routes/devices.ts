@@ -71,6 +71,57 @@ router.get('/:id', optionalAuth, async (req: Request, res: Response): Promise<vo
 });
 
 /**
+ * POST /api/v1/devices/:id/unlock
+ * Unlock door lock (ESP8266 solenoid)
+ */
+router.post('/:id/unlock', optionalAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { userId, method = 'app', pin } = req.body;
+
+    const device = await db.getDeviceById(id);
+    if (!device) {
+      res.status(404).json({ error: 'Device not found' });
+      return;
+    }
+
+    // For remote unlock, validate PIN
+    if (method === 'app' || method === 'remote') {
+      if (!pin) {
+        res.status(400).json({ error: 'PIN required' });
+        return;
+      }
+
+      const storedPin = '432432'; // Hardcoded for single box
+      if (pin !== storedPin) {
+        logger.warn(`🚫 [UNLOCK] Invalid PIN attempt for ${id}`);
+        res.status(401).json({ error: 'Invalid PIN' });
+        return;
+      }
+
+      // Send MQTT unlock command to ESP8266
+      const mqtt = getMQTTService();
+      mqtt.unlockDoor(pin);
+      logger.info(`📤 [MQTT] Unlock command sent to ESP8266`);
+    }
+
+    // Log event
+    const event = await db.createEvent({
+      type: 'UNLOCK',
+      deviceId: id,
+      packageId: null,
+      ts: new Date().toISOString(),
+      data: { userId, method, pinUsed: !!pin, timestamp: Date.now() },
+    });
+
+    res.json({ ok: true, status: 'unlocked', event });
+  } catch (error) {
+    logger.error('❌ Unlock error:', error);
+    res.status(500).json({ error: 'Unlock failed' });
+  }
+});
+
+/**
  * POST /api/v1/devices/:id/control
  * Send control command to device
  */
