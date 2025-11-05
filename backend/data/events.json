@@ -743,6 +743,76 @@
       "packageId": null,
       "id": "evt-1761707188545-9mk7u9tyl",
       "createdAt": "2025-10-29T03:06:28.545Z"
+    },
+    {
+      "id": "evt-1762272145375-4961eluzo",
+      "type": "package_received",
+      "deviceId": "box-01",
+      "ts": "2025-11-04T16:02:25.374Z",
+      "data": {
+        "packageId": "pkg-123"
+      },
+      "createdAt": "2025-11-04T16:02:25.375Z"
+    },
+    {
+      "type": "package_received",
+      "deviceId": "box-01",
+      "packageId": "pkg-123",
+      "ts": "2025-11-04T16:18:36.697Z",
+      "data": {
+        "packageId": "pkg-123",
+        "status": "received"
+      },
+      "id": "evt-1762273116698-5bdkosmhe",
+      "createdAt": "2025-11-04T16:18:36.698Z"
+    },
+    {
+      "type": "package_received",
+      "deviceId": "box-01",
+      "packageId": "pkg-123",
+      "ts": "2025-11-04T16:19:01.646Z",
+      "data": {
+        "packageId": "pkg-123",
+        "status": "received"
+      },
+      "id": "evt-1762273141646-v2z61qqwz",
+      "createdAt": "2025-11-04T16:19:01.646Z"
+    },
+    {
+      "type": "package_received",
+      "deviceId": "box-01",
+      "packageId": "pkg-123",
+      "ts": "2025-11-04T16:22:27.588Z",
+      "data": {
+        "packageId": "pkg-123",
+        "status": "received"
+      },
+      "id": "evt-1762273347589-tjd8blnw5",
+      "createdAt": "2025-11-04T16:22:27.589Z"
+    },
+    {
+      "type": "package_received",
+      "deviceId": "box-01",
+      "packageId": "pkg-123",
+      "ts": "2025-11-04T16:27:17.512Z",
+      "data": {
+        "packageId": "pkg-123",
+        "status": "received"
+      },
+      "id": "evt-1762273637513-5krfmfbm2",
+      "createdAt": "2025-11-04T16:27:17.513Z"
+    },
+    {
+      "type": "package_received",
+      "deviceId": "box-01",
+      "packageId": "pkg-123",
+      "ts": "2025-11-04T16:42:11.660Z",
+      "data": {
+        "packageId": "pkg-123",
+        "status": "received"
+      },
+      "id": "evt-1762274531661-12aa4db90",
+      "createdAt": "2025-11-04T16:42:11.661Z"
     }
   ]
 }

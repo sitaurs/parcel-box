@@ -1,3 +1,18 @@
 {
-  "notifications": []
+  "notifications": [
+    {
+      "id": "notif-1762272145378-n0h683t5a",
+      "to": [
+        "+1234567890"
+      ],
+      "message": "Test notification",
+      "status": "sent",
+      "tsCreated": "2025-11-04T16:02:25.378Z",
+      "tsSent": "2025-11-04T16:42:11.665Z",
+      "attempts": 0,
+      "error": null,
+      "createdAt": "2025-11-04T16:02:25.378Z",
+      "updatedAt": "2025-11-04T16:42:11.665Z"
+    }
+  ]
 }

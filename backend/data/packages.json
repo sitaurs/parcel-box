@@ -7,7 +7,7 @@
       "photoUrl": "/media/2025/10/27/3a639695-1d85-49ec-b9c4-da48f6d35ab5.jpg",
       "thumbUrl": "/media/2025/10/27/3a639695-1d85-49ec-b9c4-da48f6d35ab5_320.jpg",
       "distanceCm": 16.2,
-      "status": "captured",
+      "status": "delivered",
       "tsDelivered": null,
       "tsCollected": null,
       "recipientName": null,
@@ -15,7 +15,7 @@
       "waNotified": false,
       "id": "pkg-1761573752989-2g3sit1lv",
       "createdAt": "2025-10-27T14:02:32.989Z",
-      "updatedAt": "2025-10-27T14:02:32.989Z"
+      "updatedAt": "2025-11-04T16:42:11.658Z"
     },
     {
       "deviceId": "box-01",
@@ -849,6 +849,21 @@
       "id": "pkg-1761707190410-n4537rwgq",
       "createdAt": "2025-10-29T03:06:30.410Z",
       "updatedAt": "2025-10-29T03:06:30.410Z"
+    },
+    {
+      "id": "pkg-1762272145363-npdmqx00o",
+      "name": "Test Package",
+      "description": "Test Description",
+      "deviceId": "box-01",
+      "tsDetected": "2025-11-04T16:02:25.363Z",
+      "tsCollected": null,
+      "status": "pending",
+      "imageUrl": null,
+      "thumbnailUrl": null,
+      "recipientName": null,
+      "recipientPhone": null,
+      "createdAt": "2025-11-04T16:02:25.364Z",
+      "updatedAt": "2025-11-04T16:02:25.364Z"
     }
   ]
 }

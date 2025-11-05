@@ -436,6 +436,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = localStorage.getItem('token');
       
+      // Validate token exists and is not expired
+      if (!token) {
+        console.error('❌ No token found, logging out');
+        logout();
+        throw new Error('Session expired. Please login again.');
+      }
+
+      try {
+        const tokenData = JSON.parse(atob(token.split('.')[1]));
+        const isExpired = tokenData.exp * 1000 < Date.now();
+        
+        if (isExpired) {
+          console.error('⏰ Token expired, logging out');
+          logout();
+          throw new Error('Session expired. Please login again.');
+        }
+      } catch (e) {
+        console.error('❌ Invalid token format, logging out');
+        logout();
+        throw new Error('Invalid session. Please login again.');
+      }
+      
       console.log('💾 Setup Name - Sending to backend:', {
         name,
         userId: user.id,
