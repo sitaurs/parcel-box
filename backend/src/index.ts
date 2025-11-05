@@ -198,15 +198,25 @@ console.log('🚀 [STARTUP] Calling server.listen() on port', config.port);
 // Start server
 server.listen(config.port, () => {
   console.log('🚀 [STARTUP] ✅ server.listen() callback executed!');
+  console.log('🚀 [STARTUP] Trying logger.info() call 1...');
   logger.info('╔════════════════════════════════════════════╗');
+  console.log('🚀 [STARTUP] Logger 1 OK, trying 2...');
   logger.info('║   Smart Parcel Box - Backend Server       ║');
+  console.log('🚀 [STARTUP] Logger 2 OK, trying 3...');
   logger.info('╚════════════════════════════════════════════╝');
+  console.log('🚀 [STARTUP] Logger 3 OK, trying 4...');
   logger.info(`🚀 Server running on http://localhost:${config.port}`);
+  console.log('🚀 [STARTUP] Logger 4 OK, trying 5...');
   logger.info(`📡 WebSocket endpoint: ws://localhost:${config.port}/ws`);
+  console.log('🚀 [STARTUP] Logger 5 OK, trying 6...');
   logger.info(`📁 Storage directory: ${config.storage.dir}`);
+  console.log('🚀 [STARTUP] Logger 6 OK, trying 7...');
   logger.info(`🗄️  Database: ${config.database.url}`);
+  console.log('🚀 [STARTUP] Logger 7 OK, trying 8...');
   logger.info(`🌍 Environment: ${config.nodeEnv}`);
+  console.log('🚀 [STARTUP] Logger 8 OK, trying 9...');
   logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🚀 [STARTUP] ✅✅✅ ALL DONE! Server is ready!');
 });
 
 // Graceful shutdown
