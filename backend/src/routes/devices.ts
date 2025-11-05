@@ -141,9 +141,14 @@ router.post(
       return;
     }
 
-    // SPECIAL CASE: Door unlock via control endpoint
-    logger.info(`🔍 [DEBUG] command=${JSON.stringify(command)} req.body=${JSON.stringify(req.body)}`);
-    logger.info(`🔍 [DEBUG] Check: command.action=${ (command as any).action} req.body.action=${req.body.action}`);
+    // SPECIAL CASE: Door unlock via control endpoint  
+    console.log('=== CONTROL ENDPOINT ===');
+    console.log('command:', command);
+    console.log('req.body:', req.body);
+    console.log('command.action:', (command as any).action);
+    console.log('req.body.action:', req.body.action);
+    console.log('========================');
+    
     if ((command as any).action === 'unlock' || req.body.action === 'unlock') {
       const { pin } = req.body;
       
