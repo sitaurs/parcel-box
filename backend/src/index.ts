@@ -193,6 +193,28 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   });
 });
 
+// Handle server errors (port conflicts, permission issues)
+server.on('error', (err: any) => {
+  console.error('🔴 [FATAL] Server error:', err);
+  logger.error('Server error details:', { 
+    code: err.code, 
+    message: err.message,
+    stack: err.stack 
+  });
+  
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ FATAL: Port ${config.port} is already in use!`);
+    console.error(`Run this to find the process: sudo lsof -ti:${config.port}`);
+    console.error(`Run this to kill it: sudo kill -9 $(sudo lsof -ti:${config.port})\n`);
+  } else if (err.code === 'EACCES') {
+    console.error(`\n❌ FATAL: Permission denied for port ${config.port}`);
+    console.error(`Ports below 1024 require root or capabilities`);
+    console.error(`Run: sudo setcap cap_net_bind_service=+ep $(which node)\n`);
+  }
+  
+  process.exit(1);
+});
+
 console.log('🚀 [STARTUP] Calling server.listen() on port', config.port);
 
 // Start server
